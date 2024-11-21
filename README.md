@@ -2,7 +2,7 @@
 
 [![Linting](https://github.com/xeioka/trady/actions/workflows/linting.yaml/badge.svg)](https://github.com/xeioka/trady/actions/workflows/linting.yaml)
 
-An attempt to unify various trading platforms under a single interface.
+> _Do you have any idea why they call him Franky "Four Fingers", Doug?_
 
 ## Requirements
 
