@@ -1,0 +1,4 @@
+# https://pypi.org/project/ruff/
+ruff==0.7.0
+# https://pypi.org/project/mypy/
+mypy==1.13.0

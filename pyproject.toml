@@ -1,0 +1,53 @@
+# Packaging (and other) tools configuration.
+#
+# Resources
+# ---------
+# Documentation:
+#   - https://packaging.python.org/en/latest/
+# Overview:
+#   - https://packaging.python.org/en/latest/guides/writing-pyproject-toml/
+# Specification:
+#   - https://packaging.python.org/en/latest/specifications/pyproject-toml/
+
+[build-system]
+requires = ['setuptools >= 61.0']
+build-backend = 'setuptools.build_meta'
+
+[project]
+version = '0.0.1'
+name = 'trady'
+description = 'An attempt to unify various trading platforms under a single interface.'
+readme = 'README.md'
+requires-python = '>= 3.12'
+
+# https://docs.astral.sh/ruff/settings/#top-level
+[tool.ruff]
+required-version = '0.7.0'
+line-length = 100
+cache-dir = './local/.ruff_cache'
+
+# https://docs.astral.sh/ruff/settings/#lint
+[tool.ruff.lint]
+extend-select = ['I']
+
+# https://docs.astral.sh/ruff/settings/#lintisort
+[tool.ruff.lint.isort]
+lines-after-imports = 2
+
+# https://mypy.readthedocs.io/en/stable/config_file.html
+[tool.mypy]
+python_version = '3.12'
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_decorators = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+check_untyped_defs = true
+implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_return_any = true
+warn_unreachable = true
+cache_dir = './local/.mypy_cache'

@@ -1,0 +1,56 @@
+# GitHub Actions workflow: linting.
+#
+# Resources
+# ---------
+# Documentation:
+#   - https://docs.github.com/en/actions
+# Overview:
+#   - https://docs.github.com/en/actions/writing-workflows
+# Specification:
+#   - https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions
+
+name: Linting
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: [3.12]
+    steps:
+      # Checkout the project.
+      - uses: actions/checkout@v4
+
+      # Setup Python.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      # Install Python requirements.
+      - name: Install Python requirements
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements/linting.txt
+
+      # Run Ruff.
+      # https://docs.astral.sh/ruff/integrations/#github-actions
+      - name: Run Ruff linter
+        if: ${{ !cancelled() }}
+        run: ruff check . --output-format github
+      - name: Run Ruff formatter
+        if: ${{ !cancelled() }}
+        run: ruff format . --check
+
+      # Run mypy.
+      # https://mypy.readthedocs.io/en/stable/command_line.html
+      - name: Run mypy
+        if: ${{ !cancelled() }}
+        run: mypy . --ignore-missing-imports

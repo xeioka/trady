@@ -1,0 +1,12 @@
+# Workflow.
+/local
+
+# Environments & IDEs.
+/.venv
+/.vscode
+
+# Cache.
+**/__pycache__
+
+# OS.
+**/.DS_Store
