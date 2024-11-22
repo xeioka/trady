@@ -16,7 +16,7 @@ build-backend = 'setuptools.build_meta'
 [project]
 version = '0.0.1'
 name = 'trady'
-description = 'An attempt to unify various trading platforms under a single interface.'
+description = 'A single interface for various exchanges.'
 readme = 'README.md'
 requires-python = '>= 3.12'
 
