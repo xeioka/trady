@@ -19,6 +19,7 @@ name = 'trady'
 description = 'A single interface for various exchanges.'
 readme = 'README.md'
 requires-python = '>= 3.12'
+dependencies = ["requests==2.32.3"]
 
 # https://docs.astral.sh/ruff/settings/#top-level
 [tool.ruff]
