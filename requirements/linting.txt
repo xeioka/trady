@@ -2,3 +2,5 @@
 ruff==0.7.0
 # https://pypi.org/project/mypy/
 mypy==1.13.0
+# https://pypi.org/project/types-requests/
+types-requests==2.32.0.20241016

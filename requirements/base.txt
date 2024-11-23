@@ -1,0 +1,2 @@
+# https://pypi.org/project/requests/
+requests==2.32.3
