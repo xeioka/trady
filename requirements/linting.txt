@@ -4,3 +4,5 @@ ruff==0.7.0
 mypy==1.13.0
 # https://pypi.org/project/types-requests/
 types-requests==2.32.0.20241016
+# https://pypi.org/project/pydantic/
+pydantic==2.10.1
