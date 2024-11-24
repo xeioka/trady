@@ -27,4 +27,9 @@ repos:
     hooks:
       - id: mypy
         args: [--ignore-missing-imports]
-        additional_dependencies: [types-requests==2.32.0.20241016]
+        additional_dependencies: [
+          # https://pypi.org/project/types-requests/
+          types-requests==2.32.0.20241016,
+          # https://pypi.org/project/pydantic/
+          pydantic==2.10.1,
+        ]

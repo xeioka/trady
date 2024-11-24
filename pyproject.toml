@@ -19,7 +19,12 @@ name = 'trady'
 description = 'A single interface for various exchanges.'
 readme = 'README.md'
 requires-python = '>= 3.12'
-dependencies = ["requests==2.32.3"]
+dependencies = [
+    # https://pypi.org/project/requests/
+    'requests==2.32.3',
+    # https://pypi.org/project/pydantic/
+    'pydantic==2.10.1',
+]
 
 # https://docs.astral.sh/ruff/settings/#top-level
 [tool.ruff]
@@ -38,6 +43,7 @@ lines-after-imports = 2
 # https://mypy.readthedocs.io/en/stable/config_file.html
 [tool.mypy]
 python_version = '3.12'
+plugins = ['pydantic.mypy']
 disallow_untyped_calls = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

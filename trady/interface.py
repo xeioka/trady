@@ -12,13 +12,15 @@ from datetime import datetime
 
 from requests import Session
 
+from .datatypes import Symbol
+
 
 class ExchangeInterface(abc.ABC):
     """Abstract exchange interface.
 
     Attributes
     ----------
-    session: Session
+    session
         Requests session. Must be used for _all_ HTTP requests.
     """
 
@@ -27,4 +29,8 @@ class ExchangeInterface(abc.ABC):
 
     def get_datetime(self) -> datetime:
         """Retrieves date and time."""
+        raise NotImplementedError
+
+    def get_symbols(self) -> list[Symbol]:
+        """Retrieves available symbols."""
         raise NotImplementedError
