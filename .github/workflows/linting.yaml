@@ -53,4 +53,4 @@ jobs:
       # https://mypy.readthedocs.io/en/stable/command_line.html
       - name: Run mypy
         if: ${{ !cancelled() }}
-        run: mypy . --ignore-missing-imports
+        run: mypy .
