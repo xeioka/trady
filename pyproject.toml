@@ -20,9 +20,10 @@ description = 'A single interface for various exchanges.'
 readme = 'README.md'
 requires-python = '>= 3.12'
 dependencies = [
-    # https://pypi.org/project/requests/
+    # Core.
+    ## https://pypi.org/project/requests/
     'requests==2.32.3',
-    # https://pypi.org/project/pydantic/
+    ## https://pypi.org/project/pydantic/
     'pydantic==2.10.1',
 ]
 
@@ -30,7 +31,7 @@ dependencies = [
 [tool.ruff]
 required-version = '0.7.0'
 line-length = 100
-cache-dir = './local/.ruff_cache'
+cache-dir = 'local/.ruff_cache'
 
 # https://docs.astral.sh/ruff/settings/#lint
 [tool.ruff.lint]
@@ -57,4 +58,4 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_return_any = true
 warn_unreachable = true
-cache_dir = './local/.mypy_cache'
+cache_dir = 'local/.mypy_cache'

@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 
 class Rules(BaseModel):
-    """Symbol rules representation."""
+    """Rules representation."""
 
     # Order size rules.
     min_notional: Decimal | None = None
