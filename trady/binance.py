@@ -21,14 +21,17 @@ class Binance(ExchangeInterface):
     ----------------
     API_URL
         Base API URL.
-    CANDLESTICKS_MAX_LIMIT
-        See `ExchangeInterface.CANDLESTICKS_MAX_LIMIT`.
+    CANDLESTICKS_MAX_NUMBER
+        See `ExchangeInterface.CANDLESTICKS_MAX_NUMBER`.
+    CANDLESTICKS_ITERATOR_THROTTLE
+        See `ExchangeInterface.CANDLESTICKS_ITERATOR_THROTTLE`.
     CANDLESTICKS_INTERVAL_MAP
         A mapping between intervals in seconds and the corresponding API values.
     """
 
     API_URL: str = "https://fapi.binance.com/fapi/v1/"
-    CANDLESTICKS_MAX_LIMIT: int = 1500
+    CANDLESTICKS_MAX_NUMBER: int = 1500
+    CANDLESTICKS_ITERATOR_THROTTLE: float = 0.1
     CANDLESTICKS_INTERVAL_MAP: dict[int, str] = {
         60: "1m",
         60 * 3: "3m",
@@ -72,7 +75,7 @@ class Binance(ExchangeInterface):
         self,
         symbol: Symbol,
         interval: int,
-        limit: int = CANDLESTICKS_MAX_LIMIT,
+        number: int = CANDLESTICKS_MAX_NUMBER,
         start_datetime: datetime | None = None,
         end_datetime: datetime | None = None,
     ) -> list[Candlestick]:
@@ -86,7 +89,7 @@ class Binance(ExchangeInterface):
         parameters = {
             "symbol": symbol.name,
             "interval": self.CANDLESTICKS_INTERVAL_MAP[interval],
-            "limit": str(limit),
+            "limit": str(number),
             "startTime": int(start_datetime.timestamp() * 1000) if start_datetime else None,
             "endTime": int(end_datetime.timestamp() * 1000) if end_datetime else None,
         }
