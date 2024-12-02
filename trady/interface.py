@@ -48,7 +48,7 @@ class ExchangeInterface(abc.ABC):
         pass
 
     def __init__(self) -> None:
-        """Initialize instance."""
+        """Initialize interface."""
         self._settings: ExchangeSettings = self._get_settings()
         self._session: Session = Session()
 

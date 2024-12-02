@@ -10,7 +10,7 @@ A single interface for various exchanges.
 
 1. [Python](https://www.python.org) >= 3.12;
 
-## Usage
+## Installing
 
 Install from GitHub repository (see [pip documentation](https://pip.pypa.io/en/stable/topics/vcs-support/#git) or run `pip install --help`):
 
