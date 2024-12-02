@@ -32,4 +32,6 @@ repos:
           types-requests==2.32.0.20241016,
           # https://pypi.org/project/pydantic/
           pydantic==2.10.1,
+          # https://pypi.org/project/pydantic-settings/
+          pydantic-settings==2.6.1,
         ]

@@ -1,6 +1,6 @@
-"""This package contains the exchange interface datatypes.
+"""Exchange datatypes.
 
-Datatypes unify the representation of data that is common across various exchanges.
+Exchange datatypes define a representation of data that is common across various exchanges.
 """
 
 from .candlestick import Candlestick

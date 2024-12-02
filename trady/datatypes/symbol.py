@@ -1,4 +1,4 @@
-"""This module contains the representation of a symbol and its rules."""
+"""Representation of a symbol and its rules."""
 
 from decimal import Decimal
 
@@ -29,4 +29,5 @@ class Symbol(BaseModel):
 
     @property
     def name(self) -> str:
+        """Symbol name."""
         return self.base_asset + self.quote_asset

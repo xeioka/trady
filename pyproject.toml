@@ -25,6 +25,8 @@ dependencies = [
     'requests==2.32.3',
     ## https://pypi.org/project/pydantic/
     'pydantic==2.10.1',
+    ## https://pypi.org/project/pydantic-settings/
+    'pydantic-settings==2.6.1',
 ]
 
 # https://docs.astral.sh/ruff/settings/#top-level
@@ -35,7 +37,8 @@ cache-dir = 'local/.ruff_cache'
 
 # https://docs.astral.sh/ruff/settings/#lint
 [tool.ruff.lint]
-extend-select = ['I']
+extend-select = ['D', 'I']
+ignore = ['D203', 'D213', 'D413']
 
 # https://docs.astral.sh/ruff/settings/#lintisort
 [tool.ruff.lint.isort]
