@@ -1,4 +1,4 @@
-"""This module contains the representation of a candlestick."""
+"""Representation of a candlestick."""
 
 from datetime import datetime
 from decimal import Decimal

@@ -2,6 +2,7 @@
 /local
 
 # Environments & IDEs.
+/.env
 /.venv
 /.vscode
 
