@@ -50,6 +50,8 @@ class ExchangeInterface(abc.ABC):
     def __init__(self) -> None:
         """Initialize interface."""
         self._settings: ExchangeSettings = self._get_settings()
+        assert self._settings.api_key, f"{self.__class__.__name__} API key is missing"
+        assert self._settings.api_secret, f"{self.__class__.__name__} API secret is missing"
         self._session: Session = Session()
 
     def get_datetime(self) -> datetime:

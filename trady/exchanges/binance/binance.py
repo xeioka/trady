@@ -6,9 +6,11 @@ API documentation:
   - https://binance-docs.github.io/apidocs/futures/en/#general-info
 """
 
+import hmac
 from datetime import datetime
 from decimal import Decimal
 from typing import Any
+from urllib.parse import urlencode
 
 from trady.datatypes import Candlestick, Rules, Symbol
 from trady.interface import ExchangeInterface
@@ -45,13 +47,38 @@ class Binance(ExchangeInterface):
         """See `ExchangeInterface._get_settings()`."""
         return BinanceSettings()
 
+    def __init__(self) -> None:
+        """Initialize interface."""
+        super().__init__()
+        # https://binance-docs.github.io/apidocs/futures/en/#endpoint-security-type
+        self._session.headers.update({"X-MBX-APIKEY": self._settings.api_key})
+
+    def _sign_payload(self, payload: dict[str, str | int]) -> dict[str, str | int]:
+        """Sign request payload.
+
+        For more information on signing payloads, see
+        https://binance-docs.github.io/apidocs/futures/en/#endpoint-security-type.
+
+        Parameters
+        ----------
+        payload
+            A payload to sign.
+        """
+        payload["timestamp"] = int(datetime.now().timestamp() * 1000)
+        payload["signature"] = hmac.new(
+            self._settings.api_secret.encode(),
+            msg=urlencode(payload).encode(),
+            digestmod="SHA256",
+        ).hexdigest()
+        return payload
+
     def _get_datetime(self) -> datetime:
         """See `ExchangeInterface._get_datetime()`.
 
         API endpoint:
             - https://binance-docs.github.io/apidocs/futures/en/#check-server-time
         """
-        response = self._session.get(str(self._settings.api_url) + "time")
+        response = self._session.get(str(self._settings.api_url) + "v1/time")
         timestamp = response.json()["serverTime"] / 1000
         return datetime.fromtimestamp(timestamp)
 
@@ -61,7 +88,7 @@ class Binance(ExchangeInterface):
         API endpoint:
             - https://binance-docs.github.io/apidocs/futures/en/#exchange-information
         """
-        response = self._session.get(str(self._settings.api_url) + "exchangeInfo")
+        response = self._session.get(str(self._settings.api_url) + "v1/exchangeInfo")
         symbols_data = response.json()["symbols"]
         return [
             self._parse_symbol(symbol_data)
@@ -84,14 +111,14 @@ class Binance(ExchangeInterface):
         """
         if interval not in self.INTERVAL_MAP:
             raise NotImplementedError(f"unsupported interval ({interval})")
-        parameters = {
+        payload = {
             "symbol": symbol.name,
             "interval": self.INTERVAL_MAP[interval],
             "limit": str(number),
             "startTime": int(start_datetime.timestamp() * 1000) if start_datetime else None,
             "endTime": int(end_datetime.timestamp() * 1000) if end_datetime else None,
         }
-        response = self._session.get(str(self._settings.api_url) + "klines", params=parameters)
+        response = self._session.get(str(self._settings.api_url) + "v1/klines", params=payload)
         candlesticks_data = response.json()
         return [self._parse_candlestick(candlestick_data) for candlestick_data in candlesticks_data]
 
