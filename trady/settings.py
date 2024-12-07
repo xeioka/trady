@@ -24,6 +24,10 @@ class ExchangeSettings(BaseSettings, env_file=".env"):
     ----------
     self.api_url
         Base API URL.
+    self.api_key
+        API key.
+    self.api_secret
+        API secret.
     self.candlesticks_max_number
         Maximum number of candlesticks that can be retrieved in a single API request.
     self.candlesticks_iterator_throttle
@@ -36,5 +40,7 @@ class ExchangeSettings(BaseSettings, env_file=".env"):
     """
 
     api_url: HttpUrl
+    api_key: str
+    api_secret: str
     candlesticks_max_number: PositiveInt
     candlesticks_iterator_throttle: NonNegativeFloat
