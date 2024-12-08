@@ -18,7 +18,7 @@ class ExchangeSettings(BaseSettings, env_file=".env"):
     """Abstract exchange settings.
 
     Subclasses must provide unique `env_prefix` value (use `trady__{exchange_name}__`), see
-    https://docs.pydantic.dev/latest/concepts/pydantic_settings/#environment-variable-names.
+    https://docs.pydantic.dev/latest/concepts/pydantic_settings/#environment-variable-names
 
     Attributes
     ----------

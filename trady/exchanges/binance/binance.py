@@ -57,7 +57,7 @@ class Binance(ExchangeInterface):
         """Sign request payload.
 
         For more information on signing payloads, see
-        https://binance-docs.github.io/apidocs/futures/en/#endpoint-security-type.
+        https://binance-docs.github.io/apidocs/futures/en/#endpoint-security-type
 
         Parameters
         ----------
@@ -129,7 +129,7 @@ class Binance(ExchangeInterface):
         ----------
         symbol_data
             Symbol data as returned by the API, see `symbols` in
-            https://binance-docs.github.io/apidocs/futures/en/#exchange-information.
+            https://binance-docs.github.io/apidocs/futures/en/#exchange-information
         """
         rules_data = symbol_data["filters"]
         return Symbol(
@@ -145,7 +145,7 @@ class Binance(ExchangeInterface):
         ----------
         rules_data
             Rules data as returned by the API, see `filters` in
-            https://binance-docs.github.io/apidocs/futures/en/#exchange-information.
+            https://binance-docs.github.io/apidocs/futures/en/#exchange-information
         """
         rules_kwargs = {}
         for rule_data in rules_data:
@@ -168,7 +168,7 @@ class Binance(ExchangeInterface):
         ----------
         candlestick_data
             Candlestick data as returned by the API, see
-            https://binance-docs.github.io/apidocs/futures/en/#kline-candlestick-data.
+            https://binance-docs.github.io/apidocs/futures/en/#kline-candlestick-data
         """
         total_volume = Decimal(candlestick_data[7])
         buy_volume = Decimal(candlestick_data[10])

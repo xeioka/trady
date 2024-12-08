@@ -31,7 +31,7 @@ class ExchangeInterface(abc.ABC):
         Exchange-specific settings. Must be specified by implementing `_get_settings()`
     self._session
         A session object for making HTTP requests, see
-        https://requests.readthedocs.io/en/latest/user/advanced/#session-objects.
+        https://requests.readthedocs.io/en/latest/user/advanced/#session-objects
 
     Examples
     --------
