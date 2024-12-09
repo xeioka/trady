@@ -10,35 +10,35 @@
 #   - https://packaging.python.org/en/latest/specifications/pyproject-toml/
 
 [build-system]
-requires = ['setuptools >= 61.0']
-build-backend = 'setuptools.build_meta'
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
 
 [project]
-name = 'trady'
-description = 'A single interface for various exchanges.'
-version = '0.0.1'
-readme = 'README.md'
-requires-python = '>= 3.12'
+name = "trady"
+description = "A single interface for various exchanges."
+version = "0.0.1"
+readme = "README.md"
+requires-python = ">= 3.12"
 dependencies = [
     # Core.
     ## https://pypi.org/project/requests/
-    'requests==2.32.3',
+    "requests==2.32.3",
     ## https://pypi.org/project/pydantic/
-    'pydantic==2.10.1',
+    "pydantic==2.10.1",
     ## https://pypi.org/project/pydantic-settings/
-    'pydantic-settings==2.6.1',
+    "pydantic-settings==2.6.1",
 ]
 
 # https://docs.astral.sh/ruff/settings/#top-level
 [tool.ruff]
-required-version = '0.7.0'
+required-version = "0.7.0"
 line-length = 100
-cache-dir = 'local/.ruff_cache'
+cache-dir = "local/.ruff_cache"
 
 # https://docs.astral.sh/ruff/settings/#lint
 [tool.ruff.lint]
-extend-select = ['D', 'I']
-ignore = ['D203', 'D213', 'D413']
+extend-select = ["D", "I"]
+ignore = ["D203", "D213", "D413"]
 
 # https://docs.astral.sh/ruff/settings/#lintisort
 [tool.ruff.lint.isort]
@@ -46,8 +46,8 @@ lines-after-imports = 2
 
 # https://mypy.readthedocs.io/en/stable/config_file.html
 [tool.mypy]
-python_version = '3.12'
-plugins = ['pydantic.mypy']
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
 disallow_untyped_calls = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
@@ -61,4 +61,4 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_return_any = true
 warn_unreachable = true
-cache_dir = 'local/.mypy_cache'
+cache_dir = "local/.mypy_cache"
