@@ -12,7 +12,7 @@ from typing import Iterator
 
 from requests import Session
 
-from trady.datatypes import Candlestick, Symbol
+from trady.datatypes import Balance, Candlestick, Symbol
 from trady.settings import ExchangeSettings
 
 
@@ -148,6 +148,16 @@ class ExchangeInterface(abc.ABC):
             start_datetime = candlesticks[-1].close_datetime
             time.sleep(self._settings.candlesticks_iterator_throttle)
 
+    def get_balance(self, asset: str) -> Balance | None:
+        """Retrieve balance.
+
+        Parameters
+        ----------
+        asset
+            An asset to retrieve the balance for.
+        """
+        return self._get_balance(asset)
+
     @abc.abstractmethod
     def _get_datetime(self) -> datetime:
         """Override this to implement `get_datetime()`."""
@@ -168,4 +178,9 @@ class ExchangeInterface(abc.ABC):
         end_datetime: datetime | None = None,
     ) -> list[Candlestick]:
         """Override this to implement `get_candlesticks()` and `get_candlesticks_iterator()`."""
+        pass
+
+    @abc.abstractmethod
+    def _get_balance(self, asset: str) -> Balance | None:
+        """Override this to implement `get_balance()`."""
         pass
