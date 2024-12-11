@@ -12,7 +12,7 @@ from decimal import Decimal
 from typing import Any
 from urllib.parse import urlencode
 
-from trady.datatypes import Candlestick, Rules, Symbol
+from trady.datatypes import Balance, Candlestick, Rules, Symbol
 from trady.interface import ExchangeInterface
 
 from .settings import BinanceSettings
@@ -122,6 +122,20 @@ class Binance(ExchangeInterface):
         candlesticks_data = response.json()
         return [self._parse_candlestick(candlestick_data) for candlestick_data in candlesticks_data]
 
+    def _get_balance(self, asset: str) -> Balance | None:
+        """See `ExchangeInterface._get_balance()`.
+
+        API endpoint:
+            - https://binance-docs.github.io/apidocs/futures/en/#futures-account-balance-v3-user_data
+        """
+        payload = self._sign_payload({})
+        response = self._session.get(str(self._settings.api_url) + "v3/balance", params=payload)
+        balances_data = response.json()
+        for balance_data in balances_data:
+            if balance_data["asset"] == asset:
+                return self._parse_balance(balance_data)
+        return None
+
     def _parse_symbol(self, symbol_data: dict[str, Any]) -> Symbol:
         """Parse symbol data.
 
@@ -182,4 +196,18 @@ class Binance(ExchangeInterface):
             close_price=candlestick_data[4],
             sell_volume=sell_volume,
             buy_volume=buy_volume,
+        )
+
+    def _parse_balance(self, balance_data: dict[str, Any]) -> Balance:
+        """Parse balance data.
+
+        Parameters
+        ----------
+        balance_data
+            Balance data as returned by the API, see
+            https://binance-docs.github.io/apidocs/futures/en/#futures-account-balance-v3-user_data
+        """
+        return Balance(
+            realized=balance_data["crossWalletBalance"],
+            unrealized=balance_data["crossUnPnl"],
         )
