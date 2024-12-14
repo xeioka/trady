@@ -12,7 +12,9 @@ from decimal import Decimal
 from typing import Any
 from urllib.parse import urlencode
 
-from trady.datatypes import Balance, Candlestick, Rules, Symbol
+from pydantic import PositiveInt
+
+from trady.datatypes import Balance, Candlestick, Position, Rules, Symbol
 from trady.interface import ExchangeInterface
 
 from .settings import BinanceSettings
@@ -53,7 +55,7 @@ class Binance(ExchangeInterface):
         # https://binance-docs.github.io/apidocs/futures/en/#endpoint-security-type
         self._session.headers.update({"X-MBX-APIKEY": self._settings.api_key})
 
-    def _sign_payload(self, payload: dict[str, str | int]) -> dict[str, str | int]:
+    def _sign_payload(self, payload: dict[str, Any], /) -> dict[str, Any]:
         """Sign request payload.
 
         For more information on signing payloads, see
@@ -78,7 +80,7 @@ class Binance(ExchangeInterface):
         API endpoint:
             - https://binance-docs.github.io/apidocs/futures/en/#check-server-time
         """
-        response = self._session.get(str(self._settings.api_url) + "v1/time")
+        response = self._session.get(str(self._api_url) + "v1/time")
         timestamp = response.json()["serverTime"] / 1000
         return datetime.fromtimestamp(timestamp)
 
@@ -88,7 +90,7 @@ class Binance(ExchangeInterface):
         API endpoint:
             - https://binance-docs.github.io/apidocs/futures/en/#exchange-information
         """
-        response = self._session.get(str(self._settings.api_url) + "v1/exchangeInfo")
+        response = self._session.get(str(self._api_url) + "v1/exchangeInfo")
         symbols_data = response.json()["symbols"]
         return [
             self._parse_symbol(symbol_data)
@@ -99,8 +101,10 @@ class Binance(ExchangeInterface):
     def _get_candlesticks(
         self,
         symbol: Symbol,
-        interval: int,
-        number: int | None = None,
+        interval: PositiveInt,
+        /,
+        *,
+        number: PositiveInt | None = None,
         start_datetime: datetime | None = None,
         end_datetime: datetime | None = None,
     ) -> list[Candlestick]:
@@ -111,32 +115,106 @@ class Binance(ExchangeInterface):
         """
         if interval not in self.INTERVAL_MAP:
             raise NotImplementedError(f"unsupported interval ({interval})")
-        payload = {
-            "symbol": symbol.name,
-            "interval": self.INTERVAL_MAP[interval],
-            "limit": str(number),
-            "startTime": int(start_datetime.timestamp() * 1000) if start_datetime else None,
-            "endTime": int(end_datetime.timestamp() * 1000) if end_datetime else None,
-        }
-        response = self._session.get(str(self._settings.api_url) + "v1/klines", params=payload)
+        response = self._session.get(
+            str(self._api_url) + "v1/klines",
+            params={
+                "symbol": symbol.name,
+                "interval": self.INTERVAL_MAP[interval],
+                "limit": str(number),
+                "startTime": int(start_datetime.timestamp() * 1000) if start_datetime else None,
+                "endTime": int(end_datetime.timestamp() * 1000) if end_datetime else None,
+            },
+        )
         candlesticks_data = response.json()
         return [self._parse_candlestick(candlestick_data) for candlestick_data in candlesticks_data]
 
-    def _get_balance(self, asset: str) -> Balance | None:
+    def _get_balance(self, asset: str, /) -> Balance | None:
         """See `ExchangeInterface._get_balance()`.
 
         API endpoint:
             - https://binance-docs.github.io/apidocs/futures/en/#futures-account-balance-v3-user_data
         """
-        payload = self._sign_payload({})
-        response = self._session.get(str(self._settings.api_url) + "v3/balance", params=payload)
+        response = self._session.get(
+            str(self._api_url) + "v3/balance",
+            params=self._sign_payload({}),
+        )
         balances_data = response.json()
         for balance_data in balances_data:
             if balance_data["asset"] == asset:
                 return self._parse_balance(balance_data)
         return None
 
-    def _parse_symbol(self, symbol_data: dict[str, Any]) -> Symbol:
+    def _open_position(
+        self,
+        symbol: Symbol,
+        size: Decimal,
+        /,
+        *,
+        leverage: PositiveInt = 1,
+        stop_loss: Decimal | None = None,
+        take_profit: Decimal | None = None,
+    ) -> Position:
+        """See `ExchangeInterface._open_position()`.
+
+        API endpoint:
+            - https://binance-docs.github.io/apidocs/futures/en/#new-order-trade
+        """
+        order_endpoint_url = str(self._api_url) + "v1/order"
+        open_side = "SELL" if size < Decimal("0") else "BUY"
+        close_side = "BUY" if size < Decimal("0") else "SELL"
+        base_order = {
+            "symbol": symbol.name,
+            "positionSide": "BOTH",
+            "workingType": "CONTRACT_PRICE",
+            "priceProtect": "FALSE",
+            "newOrderRespType": "RESULT",
+            "recvWindow": 1000,
+        }
+        # Open position.
+        self._session.post(
+            order_endpoint_url,
+            data=self._sign_payload(
+                {
+                    **base_order,
+                    "side": open_side,
+                    "type": "MARKET",
+                    "quantity": str(abs(size)),
+                }
+            ),
+        )
+        # Set stop loss.
+        if stop_loss is not None:
+            self._session.post(
+                order_endpoint_url,
+                data=self._sign_payload(
+                    {
+                        **base_order,
+                        "side": close_side,
+                        "type": "STOP_MARKET",
+                        "stopPrice": str(stop_loss),
+                        "closePosition": "TRUE",
+                        "timeInForce": "GTE_GTC",
+                    }
+                ),
+            )
+        # Set take profit.
+        if take_profit is not None:
+            self._session.post(
+                order_endpoint_url,
+                data=self._sign_payload(
+                    {
+                        **base_order,
+                        "side": close_side,
+                        "type": "TAKE_PROFIT_MARKET",
+                        "stopPrice": str(take_profit),
+                        "closePosition": "TRUE",
+                        "timeInForce": "GTE_GTC",
+                    }
+                ),
+            )
+        return Position(symbol=symbol, size=size, leverage=leverage, pnl=Decimal("0"))
+
+    def _parse_symbol(self, symbol_data: dict[str, Any], /) -> Symbol:
         """Parse symbol data.
 
         Parameters
@@ -152,7 +230,7 @@ class Binance(ExchangeInterface):
             rules=self._parse_rules(rules_data),
         )
 
-    def _parse_rules(self, rules_data: list[dict[str, Any]]) -> Rules:
+    def _parse_rules(self, rules_data: list[dict[str, Any]], /) -> Rules:
         """Parse rules data.
 
         Parameters
@@ -175,7 +253,7 @@ class Binance(ExchangeInterface):
                 rules_kwargs["price_step"] = rule_data["tickSize"]
         return Rules(**rules_kwargs)
 
-    def _parse_candlestick(self, candlestick_data: list[Any]) -> Candlestick:
+    def _parse_candlestick(self, candlestick_data: list[Any], /) -> Candlestick:
         """Parse candlestick data.
 
         Parameters
@@ -198,7 +276,7 @@ class Binance(ExchangeInterface):
             buy_volume=buy_volume,
         )
 
-    def _parse_balance(self, balance_data: dict[str, Any]) -> Balance:
+    def _parse_balance(self, balance_data: dict[str, Any], /) -> Balance:
         """Parse balance data.
 
         Parameters
