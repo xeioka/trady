@@ -12,13 +12,11 @@ class Candlestick(BaseModel):
     # Open/close datetime.
     open_datetime: datetime
     close_datetime: datetime
-
     # Open/low/high/close price.
     open_price: Decimal
     low_price: Decimal
     high_price: Decimal
     close_price: Decimal
-
     # Sell/buy volume (in quote asset).
     sell_volume: Decimal
     buy_volume: Decimal

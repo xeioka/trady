@@ -13,7 +13,6 @@ class Rules(BaseModel):
     min_size: Decimal | None = None
     max_size: Decimal | None = None
     size_step: Decimal | None = None
-
     # Order price rules.
     min_price: Decimal | None = None
     max_price: Decimal | None = None

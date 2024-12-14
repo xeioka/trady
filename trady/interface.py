@@ -8,12 +8,15 @@ All exchanges must implement this interface by subclassing `ExchangeInterface`.
 import abc
 import time
 from datetime import datetime
+from decimal import Decimal
 from typing import Iterator
 
+from pydantic import HttpUrl, PositiveInt
 from requests import Session
 
-from trady.datatypes import Balance, Candlestick, Symbol
-from trady.settings import ExchangeSettings
+from trady.datatypes import Balance, Candlestick, Position, Symbol
+
+from .settings import ExchangeSettings
 
 
 class ExchangeInterface(abc.ABC):
@@ -47,6 +50,11 @@ class ExchangeInterface(abc.ABC):
         """
         pass
 
+    @property
+    def _api_url(self) -> HttpUrl:
+        """A shortcut for the base API URL."""
+        return self._settings.api_url
+
     def __init__(self) -> None:
         """Initialize interface."""
         self._settings: ExchangeSettings = self._get_settings()
@@ -65,8 +73,10 @@ class ExchangeInterface(abc.ABC):
     def get_candlesticks(
         self,
         symbol: Symbol,
-        interval: int,
-        number: int | None = None,
+        interval: PositiveInt,
+        /,
+        *,
+        number: PositiveInt | None = None,
         start_datetime: datetime | None = None,
         end_datetime: datetime | None = None,
     ) -> list[Candlestick]:
@@ -105,9 +115,10 @@ class ExchangeInterface(abc.ABC):
     def get_candlesticks_iterator(
         self,
         symbol: Symbol,
-        interval: int,
+        interval: PositiveInt,
         start_datetime: datetime,
         end_datetime: datetime,
+        /,
     ) -> Iterator[Candlestick]:
         """Retrieve candlesticks (chained API requests).
 
@@ -148,7 +159,7 @@ class ExchangeInterface(abc.ABC):
             start_datetime = candlesticks[-1].close_datetime
             time.sleep(self._settings.candlesticks_iterator_throttle)
 
-    def get_balance(self, asset: str) -> Balance | None:
+    def get_balance(self, asset: str, /) -> Balance | None:
         """Retrieve balance.
 
         Parameters
@@ -157,6 +168,40 @@ class ExchangeInterface(abc.ABC):
             An asset to retrieve the balance for.
         """
         return self._get_balance(asset)
+
+    def open_position(
+        self,
+        symbol: Symbol,
+        size: Decimal,
+        /,
+        *,
+        leverage: PositiveInt = 1,
+        stop_loss: Decimal | None = None,
+        take_profit: Decimal | None = None,
+    ) -> Position:
+        """Open position (either short or long).
+
+        Parameters
+        ----------
+        symbol
+            Position symbol.
+        size
+            Position size (in base asset).
+            Negative values for short, positive values for long.
+        leverage
+            Position leverage.
+        stop_loss
+            Stop loss price (in quote asset).
+        take_profit
+            Take profit price (in quote asset).
+        """
+        return self._open_position(
+            symbol,
+            size,
+            leverage=leverage,
+            stop_loss=stop_loss,
+            take_profit=take_profit,
+        )
 
     @abc.abstractmethod
     def _get_datetime(self) -> datetime:
@@ -172,8 +217,10 @@ class ExchangeInterface(abc.ABC):
     def _get_candlesticks(
         self,
         symbol: Symbol,
-        interval: int,
-        number: int | None = None,
+        interval: PositiveInt,
+        /,
+        *,
+        number: PositiveInt | None = None,
         start_datetime: datetime | None = None,
         end_datetime: datetime | None = None,
     ) -> list[Candlestick]:
@@ -181,6 +228,20 @@ class ExchangeInterface(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _get_balance(self, asset: str) -> Balance | None:
+    def _get_balance(self, asset: str, /) -> Balance | None:
         """Override this to implement `get_balance()`."""
+        pass
+
+    @abc.abstractmethod
+    def _open_position(
+        self,
+        symbol: Symbol,
+        size: Decimal,
+        /,
+        *,
+        leverage: PositiveInt = 1,
+        stop_loss: Decimal | None = None,
+        take_profit: Decimal | None = None,
+    ) -> Position:
+        """Override this to implement `open_position()`."""
         pass

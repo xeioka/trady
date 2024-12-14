@@ -4,4 +4,4 @@ from trady.exchanges import Binance
 from trady.interface import ExchangeInterface
 
 
-__all__ = ("ExchangeInterface", "Binance")
+__all__ = ("Binance", "ExchangeInterface")
