@@ -9,12 +9,13 @@ import abc
 import time
 from datetime import datetime
 from decimal import Decimal
-from typing import Iterator
+from typing import Any, Iterator, Literal
 
-from pydantic import HttpUrl, PositiveInt
-from requests import Session
+from pydantic import PositiveInt
+from requests import Session, status_codes
 
 from trady.datatypes import Balance, Candlestick, Position, Symbol
+from trady.exceptions import ExchangeException
 
 from .settings import ExchangeSettings
 
@@ -23,37 +24,37 @@ class ExchangeInterface(abc.ABC):
     """Abstract exchange interface.
 
     Public interface methods must be implemented by overriding their protected
-    counterpart and utilizing `self._session` for making HTTP requests (API calls).
+    counterpart and utilizing `_dispatch_request()` for making HTTP requests (API calls).
 
-    Third-party API connectors/libraries _must not_ be used
-    since they tend to restrict the available functionality.
+    Third-party API connectors/libraries _must not_ be used since they tend
+    to restrict the available functionality and increase overall complexity.
 
     Attributes
     ----------
-    self._settings
-        Exchange-specific settings. Must be specified by implementing `_get_settings()`
-    self._session
-        A session object for making HTTP requests, see
+    _settings
+        Exchange-specific settings. Must be specified by implementing `_get_settings()`.
+    _session
+        HTTP session used by `_dispatch_request()`, see
         https://requests.readthedocs.io/en/latest/user/advanced/#session-objects
 
     Examples
     --------
-    See any exchange in `trady.exchanges`.
+    See exchanges in `trady.exchanges`.
     """
 
     @classmethod
     @abc.abstractmethod
     def _get_settings(cls) -> ExchangeSettings:
-        """Return exchange-specific settings.
+        """Get exchange-specific settings.
 
         Note that every exchange must define its own settings (see `trady.settings`).
         """
         pass
 
     @property
-    def _api_url(self) -> HttpUrl:
+    def _api_url(self) -> str:
         """A shortcut for the base API URL."""
-        return self._settings.api_url
+        return str(self._settings.api_url)
 
     def __init__(self) -> None:
         """Initialize interface."""
@@ -95,7 +96,7 @@ class ExchangeInterface(abc.ABC):
             Candlesticks interval (in seconds).
         number
             Required number of candlesticks.
-            The default and maximum value is `self._settings.candlesticks_max_number`.
+            The default and maximum value is `_settings.candlesticks_max_number`.
             If there's not enough candlesticks the method will simply return all of them.
         start_datetime
             An open datetime to start with.
@@ -138,7 +139,7 @@ class ExchangeInterface(abc.ABC):
 
         Notes
         -----
-        Safe chaining depends on the value of `self._settings.candlesticks_iterator_throttle`
+        Safe chaining depends on the value of `_settings.candlesticks_iterator_throttle`
         which is used for throttling API requests in order to avoid violating rate limits.
         """
         while True:
@@ -202,6 +203,33 @@ class ExchangeInterface(abc.ABC):
             stop_loss=stop_loss,
             take_profit=take_profit,
         )
+
+    def _dispatch_request(
+        self,
+        method: Literal["GET", "POST"],
+        url: str,
+        data: dict[str, Any] | None = None,
+    ) -> Any:
+        """Dispatch HTTP request.
+
+        Parameters
+        ----------
+        method
+            Request method.
+        url
+            Request URL.
+        data
+            Request data.
+        """
+        data = data if data is not None else {}
+        match method:
+            case "GET":
+                response = self._session.get(url, params=data)
+            case "POST":
+                response = self._session.post(url, data=data)
+        if response.status_code != status_codes.codes.OK:
+            raise ExchangeException(response.json())
+        return response.json()
 
     @abc.abstractmethod
     def _get_datetime(self) -> datetime:

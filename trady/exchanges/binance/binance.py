@@ -25,7 +25,7 @@ class Binance(ExchangeInterface):
 
     Attributes
     ----------
-    cls.INTERVAL_MAP
+    INTERVAL_MAP
         A mapping between intervals in seconds and the corresponding API values.
     """
 
@@ -80,9 +80,8 @@ class Binance(ExchangeInterface):
         API endpoint:
             - https://binance-docs.github.io/apidocs/futures/en/#check-server-time
         """
-        response = self._session.get(str(self._api_url) + "v1/time")
-        timestamp = response.json()["serverTime"] / 1000
-        return datetime.fromtimestamp(timestamp)
+        response_data = self._dispatch_request("GET", self._api_url + "v1/time")
+        return datetime.fromtimestamp(response_data["serverTime"] / 1000)
 
     def _get_symbols(self) -> list[Symbol]:
         """See `ExchangeInterface._get_symbols()`.
@@ -90,11 +89,10 @@ class Binance(ExchangeInterface):
         API endpoint:
             - https://binance-docs.github.io/apidocs/futures/en/#exchange-information
         """
-        response = self._session.get(str(self._api_url) + "v1/exchangeInfo")
-        symbols_data = response.json()["symbols"]
+        response_data = self._dispatch_request("GET", str(self._api_url) + "v1/exchangeInfo")
         return [
             self._parse_symbol(symbol_data)
-            for symbol_data in symbols_data
+            for symbol_data in response_data["symbols"]
             if symbol_data["status"] == "TRADING" and symbol_data["contractType"] == "PERPETUAL"
         ]
 
@@ -115,9 +113,10 @@ class Binance(ExchangeInterface):
         """
         if interval not in self.INTERVAL_MAP:
             raise NotImplementedError(f"unsupported interval ({interval})")
-        response = self._session.get(
+        response_data = self._dispatch_request(
+            "GET",
             str(self._api_url) + "v1/klines",
-            params={
+            data={
                 "symbol": symbol.name,
                 "interval": self.INTERVAL_MAP[interval],
                 "limit": str(number),
@@ -125,8 +124,7 @@ class Binance(ExchangeInterface):
                 "endTime": int(end_datetime.timestamp() * 1000) if end_datetime else None,
             },
         )
-        candlesticks_data = response.json()
-        return [self._parse_candlestick(candlestick_data) for candlestick_data in candlesticks_data]
+        return [self._parse_candlestick(candlestick_data) for candlestick_data in response_data]
 
     def _get_balance(self, asset: str, /) -> Balance | None:
         """See `ExchangeInterface._get_balance()`.
@@ -134,12 +132,12 @@ class Binance(ExchangeInterface):
         API endpoint:
             - https://binance-docs.github.io/apidocs/futures/en/#futures-account-balance-v3-user_data
         """
-        response = self._session.get(
+        response_data = self._dispatch_request(
+            "GET",
             str(self._api_url) + "v3/balance",
-            params=self._sign_payload({}),
+            data=self._sign_payload({}),
         )
-        balances_data = response.json()
-        for balance_data in balances_data:
+        for balance_data in response_data:
             if balance_data["asset"] == asset:
                 return self._parse_balance(balance_data)
         return None
@@ -171,7 +169,8 @@ class Binance(ExchangeInterface):
             "recvWindow": 1000,
         }
         # Open position.
-        self._session.post(
+        self._dispatch_request(
+            "POST",
             order_endpoint_url,
             data=self._sign_payload(
                 {
@@ -184,7 +183,8 @@ class Binance(ExchangeInterface):
         )
         # Set stop loss.
         if stop_loss is not None:
-            self._session.post(
+            self._dispatch_request(
+                "POST",
                 order_endpoint_url,
                 data=self._sign_payload(
                     {
@@ -199,7 +199,8 @@ class Binance(ExchangeInterface):
             )
         # Set take profit.
         if take_profit is not None:
-            self._session.post(
+            self._dispatch_request(
+                "POST",
                 order_endpoint_url,
                 data=self._sign_payload(
                     {
