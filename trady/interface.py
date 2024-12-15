@@ -12,11 +12,13 @@ from decimal import Decimal
 from typing import Any, Iterator, Literal
 
 from pydantic import PositiveInt
-from requests import Session, status_codes
+from requests import Session
+from requests.exceptions import JSONDecodeError
+from requests.status_codes import codes as status_codes
 
 from trady.datatypes import Balance, Candlestick, Position, Symbol
-from trady.exceptions import ExchangeException
 
+from .exceptions import ExchangeAPIError
 from .settings import ExchangeSettings
 
 
@@ -24,7 +26,7 @@ class ExchangeInterface(abc.ABC):
     """Abstract exchange interface.
 
     Public interface methods must be implemented by overriding their protected
-    counterpart and utilizing `_dispatch_request()` for making HTTP requests (API calls).
+    counterpart and utilizing `_dispatch_api_request()` for making API requests.
 
     Third-party API connectors/libraries _must not_ be used since they tend
     to restrict the available functionality and increase overall complexity.
@@ -34,7 +36,7 @@ class ExchangeInterface(abc.ABC):
     _settings
         Exchange-specific settings. Must be specified by implementing `_get_settings()`.
     _session
-        HTTP session used by `_dispatch_request()`, see
+        HTTP session used by `_dispatch_api_request()`, see
         https://requests.readthedocs.io/en/latest/user/advanced/#session-objects
 
     Examples
@@ -50,11 +52,6 @@ class ExchangeInterface(abc.ABC):
         Note that every exchange must define its own settings (see `trady.settings`).
         """
         pass
-
-    @property
-    def _api_url(self) -> str:
-        """A shortcut for the base API URL."""
-        return str(self._settings.api_url)
 
     def __init__(self) -> None:
         """Initialize interface."""
@@ -99,7 +96,7 @@ class ExchangeInterface(abc.ABC):
             The default and maximum value is `_settings.candlesticks_max_number`.
             If there's not enough candlesticks the method will simply return all of them.
         start_datetime
-            An open datetime to start with.
+            Open datetime to start with.
         end_datetime
             Maximum open datetime.
         """
@@ -133,9 +130,9 @@ class ExchangeInterface(abc.ABC):
         interval
             Candlesticks interval (in seconds).
         start_datetime
-            An open datetime to start with.
+            Open datetime to start with.
         end_datetime
-            An open datetime to end with.
+            Open datetime to end with.
 
         Notes
         -----
@@ -204,31 +201,41 @@ class ExchangeInterface(abc.ABC):
             take_profit=take_profit,
         )
 
-    def _dispatch_request(
+    def _dispatch_api_request(
         self,
         method: Literal["GET", "POST"],
-        url: str,
+        path: str,
         data: dict[str, Any] | None = None,
     ) -> Any:
-        """Dispatch HTTP request.
+        """Dispatch API request.
 
         Parameters
         ----------
         method
             Request method.
-        url
-            Request URL.
+        path
+            API path.
         data
             Request data.
         """
-        data = data if data is not None else {}
+        url = str(self._settings.api_url) + path
+        # Dispatch request.
         match method:
             case "GET":
                 response = self._session.get(url, params=data)
             case "POST":
                 response = self._session.post(url, data=data)
-        if response.status_code != status_codes.codes.OK:
-            raise ExchangeException(response.json())
+        # Handle errors.
+        if response.status_code != status_codes.OK:
+            try:
+                details = response.json()
+            except JSONDecodeError:
+                details = {}
+            raise ExchangeAPIError(
+                f"API request returned {response.status_code}.",
+                details=details,
+            )
+        # Return response data.
         return response.json()
 
     @abc.abstractmethod

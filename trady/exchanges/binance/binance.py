@@ -15,6 +15,7 @@ from urllib.parse import urlencode
 from pydantic import PositiveInt
 
 from trady.datatypes import Balance, Candlestick, Position, Rules, Symbol
+from trady.exceptions import ExchangeAPIError
 from trady.interface import ExchangeInterface
 
 from .settings import BinanceSettings
@@ -80,7 +81,7 @@ class Binance(ExchangeInterface):
         API endpoint:
             - https://binance-docs.github.io/apidocs/futures/en/#check-server-time
         """
-        response_data = self._dispatch_request("GET", self._api_url + "v1/time")
+        response_data = self._dispatch_api_request("GET", "v1/time")
         return datetime.fromtimestamp(response_data["serverTime"] / 1000)
 
     def _get_symbols(self) -> list[Symbol]:
@@ -89,7 +90,7 @@ class Binance(ExchangeInterface):
         API endpoint:
             - https://binance-docs.github.io/apidocs/futures/en/#exchange-information
         """
-        response_data = self._dispatch_request("GET", str(self._api_url) + "v1/exchangeInfo")
+        response_data = self._dispatch_api_request("GET", "v1/exchangeInfo")
         return [
             self._parse_symbol(symbol_data)
             for symbol_data in response_data["symbols"]
@@ -112,10 +113,10 @@ class Binance(ExchangeInterface):
             - https://binance-docs.github.io/apidocs/futures/en/#kline-candlestick-data
         """
         if interval not in self.INTERVAL_MAP:
-            raise NotImplementedError(f"unsupported interval ({interval})")
-        response_data = self._dispatch_request(
+            raise NotImplementedError(f"Unsupported interval ({interval}).")
+        response_data = self._dispatch_api_request(
             "GET",
-            str(self._api_url) + "v1/klines",
+            "v1/klines",
             data={
                 "symbol": symbol.name,
                 "interval": self.INTERVAL_MAP[interval],
@@ -132,9 +133,9 @@ class Binance(ExchangeInterface):
         API endpoint:
             - https://binance-docs.github.io/apidocs/futures/en/#futures-account-balance-v3-user_data
         """
-        response_data = self._dispatch_request(
+        response_data = self._dispatch_api_request(
             "GET",
-            str(self._api_url) + "v3/balance",
+            "v3/balance",
             data=self._sign_payload({}),
         )
         for balance_data in response_data:
@@ -157,7 +158,7 @@ class Binance(ExchangeInterface):
         API endpoint:
             - https://binance-docs.github.io/apidocs/futures/en/#new-order-trade
         """
-        order_endpoint_url = str(self._api_url) + "v1/order"
+        order_api_path = "v1/order"
         open_side = "SELL" if size < Decimal("0") else "BUY"
         close_side = "BUY" if size < Decimal("0") else "SELL"
         base_order = {
@@ -168,10 +169,12 @@ class Binance(ExchangeInterface):
             "newOrderRespType": "RESULT",
             "recvWindow": 1000,
         }
+        self._ensure_margin_type(symbol)
+        self._set_leverage(symbol, leverage)
         # Open position.
-        self._dispatch_request(
+        self._dispatch_api_request(
             "POST",
-            order_endpoint_url,
+            order_api_path,
             data=self._sign_payload(
                 {
                     **base_order,
@@ -183,9 +186,9 @@ class Binance(ExchangeInterface):
         )
         # Set stop loss.
         if stop_loss is not None:
-            self._dispatch_request(
+            self._dispatch_api_request(
                 "POST",
-                order_endpoint_url,
+                order_api_path,
                 data=self._sign_payload(
                     {
                         **base_order,
@@ -199,9 +202,9 @@ class Binance(ExchangeInterface):
             )
         # Set take profit.
         if take_profit is not None:
-            self._dispatch_request(
+            self._dispatch_api_request(
                 "POST",
-                order_endpoint_url,
+                order_api_path,
                 data=self._sign_payload(
                     {
                         **base_order,
@@ -215,13 +218,58 @@ class Binance(ExchangeInterface):
             )
         return Position(symbol=symbol, size=size, leverage=leverage, pnl=Decimal("0"))
 
+    def _ensure_margin_type(self, symbol: Symbol) -> None:
+        """Ensure crossed margin type.
+
+        Parameters
+        ----------
+        symbol
+            A symbol to ensure the margin type for.
+        """
+        try:
+            self._dispatch_api_request(
+                "POST",
+                "v1/marginType",
+                data=self._sign_payload(
+                    {
+                        "symbol": symbol.name,
+                        "marginType": "CROSSED",
+                    }
+                ),
+            )
+        except ExchangeAPIError as exception:
+            # -4046 is returned when the same type is already set.
+            if exception.details["code"] != -4046:
+                raise
+
+    def _set_leverage(self, symbol: Symbol, leverage: PositiveInt) -> None:
+        """Set leverage.
+
+        Parameters
+        ----------
+        symbol
+            A symbol to set the leverage for.
+        leverage
+            The leverage to set.
+        """
+        self._dispatch_api_request(
+            "POST",
+            "v1/leverage",
+            data=self._sign_payload(
+                {
+                    "symbol": symbol.name,
+                    "leverage": leverage,
+                }
+            ),
+        )
+
     def _parse_symbol(self, symbol_data: dict[str, Any], /) -> Symbol:
         """Parse symbol data.
 
         Parameters
         ----------
         symbol_data
-            Symbol data as returned by the API, see `symbols` in
+            Symbol data returned by the API, see `symbols` in
             https://binance-docs.github.io/apidocs/futures/en/#exchange-information
         """
         rules_data = symbol_data["filters"]
@@ -237,7 +285,7 @@ class Binance(ExchangeInterface):
         Parameters
         ----------
         rules_data
-            Rules data as returned by the API, see `filters` in
+            Rules data returned by the API, see `filters` in
             https://binance-docs.github.io/apidocs/futures/en/#exchange-information
         """
         rules_kwargs = {}
@@ -260,7 +308,7 @@ class Binance(ExchangeInterface):
         Parameters
         ----------
         candlestick_data
-            Candlestick data as returned by the API, see
+            Candlestick data returned by the API, see
             https://binance-docs.github.io/apidocs/futures/en/#kline-candlestick-data
         """
         total_volume = Decimal(candlestick_data[7])
@@ -283,7 +331,7 @@ class Binance(ExchangeInterface):
         Parameters
         ----------
         balance_data
-            Balance data as returned by the API, see
+            Balance data returned by the API, see
             https://binance-docs.github.io/apidocs/futures/en/#futures-account-balance-v3-user_data
         """
         return Balance(
