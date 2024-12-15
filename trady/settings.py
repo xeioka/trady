@@ -22,21 +22,21 @@ class ExchangeSettings(BaseSettings, env_file=".env"):
 
     Attributes
     ----------
-    self.api_url
+    api_url
         Base API URL.
-    self.api_key
+    api_key
         API key.
-    self.api_secret
+    api_secret
         API secret.
-    self.candlesticks_max_number
+    candlesticks_max_number
         Maximum number of candlesticks that can be retrieved in a single API request.
-    self.candlesticks_iterator_throttle
+    candlesticks_iterator_throttle
         A delay between the API requests when retrieving more candlesticks than
-        `self.candlesticks_max_number`. It helps to avoid violating rate limits.
+        `candlesticks_max_number`. It helps to avoid violating rate limits.
 
     Examples
     --------
-    See any exchange in `trady.exchanges`.
+    See exchanges in `trady.exchanges`.
     """
 
     api_url: HttpUrl
