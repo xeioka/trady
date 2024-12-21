@@ -1,10 +1,10 @@
-# The pre-commit configuration.
+# Pre-commit configuration.
 #
 # Resources
 # ---------
-# Documentation:
+# Pre-commit documentation:
 #   - https://pre-commit.com
-# Specification:
+# Configuration specification:
 #   - https://pre-commit.com/#adding-pre-commit-plugins-to-your-project
 
 default_language_version:
