@@ -2,16 +2,12 @@
 #
 # Resources
 # ---------
-# Documentation:
+# Packaging documentation:
 #   - https://packaging.python.org/en/latest/
-# Overview:
+# Configuration overview:
 #   - https://packaging.python.org/en/latest/guides/writing-pyproject-toml/
-# Specification:
+# Configuration specification:
 #   - https://packaging.python.org/en/latest/specifications/pyproject-toml/
-
-[build-system]
-requires = ["setuptools >= 61.0"]
-build-backend = "setuptools.build_meta"
 
 [project]
 name = "trady"
@@ -28,6 +24,10 @@ dependencies = [
     ## https://pypi.org/project/pydantic-settings/
     "pydantic-settings==2.6.1",
 ]
+
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
 
 # https://docs.astral.sh/ruff/settings/#top-level
 [tool.ruff]

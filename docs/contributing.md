@@ -1,5 +1,9 @@
 # Contributing
 
+## Requirements
+
+1. [Python](https://www.python.org) >= 3.12;
+
 ## Setup
 
 1. Clone the repository:
@@ -22,16 +26,19 @@
     pre-commit install
     ```
 
-## Structure
+## Project Structure
 
-- [trady](/trady/) (code);
-  - [datatypes](/trady/datatypes/) (exchange datatypes);
-  - [exchanges](/trady/exchanges/) (exchange implementations);
-  - [interface.py](/trady/interface.py) (abstract exchange interface);
-  - [settings.py](/trady/settings.py) (abstract exchange settings);
+- [`trady`](/trady/) (source);
+  - [`datatypes`](/trady/datatypes/) (interface datatypes);
+  - [`exchanges`](/trady/exchanges/) (interface implementations);
+  - [`exceptions.py`](/trady/exceptions.py) (interface exceptions);
+  - [`interface.py`](/trady/interface.py) (exchange interface);
+  - [`settings.py`](/trady/settings.py) (exchange settings);
 
-## Implementing an Exchange
+## Exchange Implementation
 
-1. Create a package in [`trady.exchanges`](/trady/exchanges/);
+Reference existing implementations for example: [`trady.exchanges`](/trady/exchanges/).
+
+1. Create a dedicated package in [`trady.exchanges`](/trady/exchanges/);
 2. Implement interface by subclassing [`ExchangeInterface`](/trady/interface.py);
-3. Define settings by subclassing [`ExchangeSettings`](/trady/settings.py);
+3. Implement settings by subclassing [`ExchangeSettings`](/trady/settings.py);
