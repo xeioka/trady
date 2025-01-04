@@ -38,7 +38,7 @@ cache-dir = "local/.ruff_cache"
 # https://docs.astral.sh/ruff/settings/#lint
 [tool.ruff.lint]
 extend-select = ["D", "I"]
-ignore = ["D203", "D213", "D413"]
+ignore = ["D101", "D102", "D203", "D213", "D413"]
 
 # https://docs.astral.sh/ruff/settings/#lintisort
 [tool.ruff.lint.isort]
