@@ -1,4 +1,4 @@
-"""Representation of the balance."""
+"""Asset balance."""
 
 from decimal import Decimal
 
@@ -6,7 +6,10 @@ from pydantic import BaseModel
 
 
 class Balance(BaseModel):
-    """Balance representation."""
-
+    asset: str
     realized: Decimal
     unrealized: Decimal
+
+    @property
+    def total(self) -> Decimal:
+        return self.realized + self.unrealized

@@ -3,11 +3,10 @@
 Resources
 ---------
 API documentation:
-  - https://binance-docs.github.io/apidocs/futures/en/#general-info
+    - https://developers.binance.com/docs/derivatives/usds-margined-futures/general-info
 """
 
-from .binance import Binance
-from .settings import BinanceSettings
+from .interface import Binance
 
 
-__all__ = ("Binance", "BinanceSettings")
+__all__ = ("Binance",)

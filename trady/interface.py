@@ -1,67 +1,42 @@
-"""Abstract exchange interface.
-
-Exchange interface defines a unified way of implementing various exchanges and exposing common functionality.
-
-All exchanges must implement this interface by subclassing `ExchangeInterface`.
-"""
+"""Abstract exchange interface."""
 
 import abc
 import time
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Iterator, Literal
+from typing import Any, Iterator, Literal, Optional
 
 from pydantic import PositiveInt
 from requests import Session
-from requests.exceptions import JSONDecodeError
 from requests.status_codes import codes as status_codes
 
-from trady.datatypes import Balance, Candlestick, Position, Symbol
-
-from .exceptions import ExchangeAPIError
+from .datatypes import Balance, Candlestick, Position, Symbol
+from .exceptions import ExchangeException
 from .settings import ExchangeSettings
 
 
 class ExchangeInterface(abc.ABC):
     """Abstract exchange interface.
 
-    Public interface methods must be implemented by overriding their protected
+    Public interface methods are implemented by overriding their protected
     counterpart and utilizing `_dispatch_api_request()` for making API requests.
-
-    Third-party API connectors/libraries _must not_ be used since they tend
-    to restrict the available functionality and increase overall complexity.
-
-    Attributes
-    ----------
-    _settings
-        Exchange-specific settings. Must be specified by implementing `_get_settings()`.
-    _session
-        HTTP session used by `_dispatch_api_request()`, see
-        https://requests.readthedocs.io/en/latest/user/advanced/#session-objects
 
     Examples
     --------
-    See exchanges in `trady.exchanges`.
+    See `trady.exchanges.binance`.
     """
 
     @classmethod
     @abc.abstractmethod
     def _get_settings(cls) -> ExchangeSettings:
-        """Get exchange-specific settings.
-
-        Note that every exchange must define its own settings (see `trady.settings`).
-        """
         pass
 
     def __init__(self) -> None:
-        """Initialize interface."""
         self._settings: ExchangeSettings = self._get_settings()
-        assert self._settings.api_key, f"{self.__class__.__name__} API key is missing"
-        assert self._settings.api_secret, f"{self.__class__.__name__} API secret is missing"
         self._session: Session = Session()
 
     def get_datetime(self) -> datetime:
-        """Retrieve datetime."""
+        """Retrieve current datetime."""
         return self._get_datetime()
 
     def get_symbols(self) -> list[Symbol]:
@@ -74,16 +49,13 @@ class ExchangeInterface(abc.ABC):
         interval: PositiveInt,
         /,
         *,
-        number: PositiveInt | None = None,
-        start_datetime: datetime | None = None,
-        end_datetime: datetime | None = None,
+        number: Optional[PositiveInt] = None,
+        start_datetime: Optional[datetime] = None,
+        end_datetime: Optional[datetime] = None,
     ) -> list[Candlestick]:
-        """Retrieve candlesticks (single API request).
+        """Retrieve candlesticks.
 
-        This method will return the latest candlesticks unless `start_datetime` or `end_datetime` is specified.
-
-        Note that the maximum `number` of candlesticks is limited by a single API request.
-        To retrieve all candlesticks for a given datetime period, use `get_candlesticks_iterator()`.
+        This method returns the latest candlesticks unless `start_datetime` or `end_datetime` is specified.
 
         Parameters
         ----------
@@ -92,16 +64,16 @@ class ExchangeInterface(abc.ABC):
         interval
             Candlesticks interval (in seconds).
         number
-            Required number of candlesticks.
-            The default and maximum value is `_settings.candlesticks_max_number`.
-            If there's not enough candlesticks the method will simply return all of them.
+            Required number of candlesticks. The default and the maximum value is `_settings.candlesticks_max_number`.
         start_datetime
-            Open datetime to start with.
+            A datetime to start with.
         end_datetime
-            Maximum open datetime.
+            A datetime to end with.
         """
-        number = self._settings.candlesticks_max_number if number is None else number
-        assert 1 <= number <= self._settings.candlesticks_max_number, f"invalid number {number}"
+        if number is None:
+            number = self._settings.candlesticks_max_number
+        elif number > self._settings.candlesticks_max_number:
+            raise ValueError(f"number must be <= {self._settings.candlesticks_max_number}")
         return self._get_candlesticks(
             symbol,
             interval,
@@ -118,10 +90,9 @@ class ExchangeInterface(abc.ABC):
         end_datetime: datetime,
         /,
     ) -> Iterator[Candlestick]:
-        """Retrieve candlesticks (chained API requests).
+        """Retrieve all candlesticks for a given datetime period.
 
-        This method allows to retrieve all candlesticks for a given datetime period by safely chaining
-        the underlying `get_candlesticks()` calls. It becomes available when the latter is implemented.
+        This method chains the underlying `get_candlesticks()` calls.
 
         Parameters
         ----------
@@ -130,14 +101,9 @@ class ExchangeInterface(abc.ABC):
         interval
             Candlesticks interval (in seconds).
         start_datetime
-            Open datetime to start with.
+            A datetime to start with.
         end_datetime
-            Open datetime to end with.
-
-        Notes
-        -----
-        Safe chaining depends on the value of `_settings.candlesticks_iterator_throttle`
-        which is used for throttling API requests in order to avoid violating rate limits.
+            A datetime to end with.
         """
         while True:
             candlesticks = self.get_candlesticks(
@@ -147,8 +113,7 @@ class ExchangeInterface(abc.ABC):
                 start_datetime=start_datetime,
                 end_datetime=end_datetime,
             )
-            for candlestick in candlesticks:
-                yield candlestick
+            yield from candlesticks
             if (
                 len(candlesticks) < self._settings.candlesticks_max_number
                 or candlesticks[-1].close_datetime >= end_datetime
@@ -157,14 +122,8 @@ class ExchangeInterface(abc.ABC):
             start_datetime = candlesticks[-1].close_datetime
             time.sleep(self._settings.candlesticks_iterator_throttle)
 
-    def get_balance(self, asset: str, /) -> Balance | None:
-        """Retrieve balance.
-
-        Parameters
-        ----------
-        asset
-            An asset to retrieve the balance for.
-        """
+    def get_balance(self, asset: str, /) -> Balance:
+        """Retrieve asset balance."""
         return self._get_balance(asset)
 
     def open_position(
@@ -174,69 +133,55 @@ class ExchangeInterface(abc.ABC):
         /,
         *,
         leverage: PositiveInt = 1,
-        stop_loss: Decimal | None = None,
-        take_profit: Decimal | None = None,
+        take_profit: Optional[Decimal] = None,
+        stop_loss: Optional[Decimal] = None,
     ) -> Position:
-        """Open position (either short or long).
+        """Open position.
 
         Parameters
         ----------
         symbol
-            Position symbol.
+            A symbol to open the position for.
         size
-            Position size (in base asset).
-            Negative values for short, positive values for long.
+            Position size. Positive values for long, negative for short.
         leverage
-            Position leverage.
-        stop_loss
-            Stop loss price (in quote asset).
+            A leverage to use.
         take_profit
-            Take profit price (in quote asset).
+            Take profit price.
+        stop_loss
+            Stop loss price.
         """
         return self._open_position(
             symbol,
             size,
             leverage=leverage,
-            stop_loss=stop_loss,
             take_profit=take_profit,
+            stop_loss=stop_loss,
         )
 
     def _dispatch_api_request(
         self,
         method: Literal["GET", "POST"],
         path: str,
-        data: dict[str, Any] | None = None,
-    ) -> Any:
-        """Dispatch API request.
-
-        Parameters
-        ----------
-        method
-            Request method.
-        path
-            API path.
-        data
-            Request data.
-        """
-        url = str(self._settings.api_url) + path
-        # Dispatch request.
+        /,
+        *,
+        query: Optional[str] = None,
+        params: Optional[dict[str, Any]] = None,
+        data: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any] | list[Any]:
+        url = str(self._settings.api_url) + (f"{path}?{query}" if query else path)
         match method:
             case "GET":
-                response = self._session.get(url, params=data)
+                response = self._session.get(url, params=params)
             case "POST":
-                response = self._session.post(url, data=data)
-        # Handle errors.
+                response = self._session.post(url, params=params, data=data)
         if response.status_code != status_codes.OK:
-            try:
-                details = response.json()
-            except JSONDecodeError:
-                details = {}
-            raise ExchangeAPIError(
-                f"API request returned {response.status_code}.",
-                details=details,
+            raise ExchangeException(
+                f"API request returned {response.status_code}",
+                status_code=response.status_code,
+                response_data=response.json(),
             )
-        # Return response data.
-        return response.json()
+        return response.json()  # type: ignore
 
     @abc.abstractmethod
     def _get_datetime(self) -> datetime:
@@ -255,15 +200,15 @@ class ExchangeInterface(abc.ABC):
         interval: PositiveInt,
         /,
         *,
-        number: PositiveInt | None = None,
-        start_datetime: datetime | None = None,
-        end_datetime: datetime | None = None,
+        number: Optional[PositiveInt] = None,
+        start_datetime: Optional[datetime] = None,
+        end_datetime: Optional[datetime] = None,
     ) -> list[Candlestick]:
         """Override this to implement `get_candlesticks()` and `get_candlesticks_iterator()`."""
         pass
 
     @abc.abstractmethod
-    def _get_balance(self, asset: str, /) -> Balance | None:
+    def _get_balance(self, asset: str, /) -> Balance:
         """Override this to implement `get_balance()`."""
         pass
 
@@ -275,8 +220,8 @@ class ExchangeInterface(abc.ABC):
         /,
         *,
         leverage: PositiveInt = 1,
-        stop_loss: Decimal | None = None,
-        take_profit: Decimal | None = None,
+        take_profit: Optional[Decimal] = None,
+        stop_loss: Optional[Decimal] = None,
     ) -> Position:
         """Override this to implement `open_position()`."""
         pass
