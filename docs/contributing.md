@@ -26,19 +26,10 @@
     pre-commit install
     ```
 
-## Project Structure
-
-- [`trady`](/trady/) (source);
-  - [`datatypes`](/trady/datatypes/) (interface datatypes);
-  - [`exchanges`](/trady/exchanges/) (interface implementations);
-  - [`exceptions.py`](/trady/exceptions.py) (interface exceptions);
-  - [`interface.py`](/trady/interface.py) (exchange interface);
-  - [`settings.py`](/trady/settings.py) (exchange settings);
-
 ## Exchange Implementation
 
-Reference existing implementations for example: [`trady.exchanges`](/trady/exchanges/).
-
 1. Create a dedicated package in [`trady.exchanges`](/trady/exchanges/);
-2. Implement interface by subclassing [`ExchangeInterface`](/trady/interface.py);
-3. Implement settings by subclassing [`ExchangeSettings`](/trady/settings.py);
+2. Implement settings by subclassing [`ExchangeSettings`](/trady/settings.py);
+3. Implement interface by subclassing [`ExchangeInterface`](/trady/interface.py);
+
+For example, see the [Binance implementation](/trady/exchanges/binance/).

@@ -1,49 +1,20 @@
-"""Exchange interface exceptions."""
+"""Exchange exceptions."""
 
-from typing import Any
+from typing import Any, Optional
+
+from pydantic import PositiveInt
 
 
-class ExchangeInterfaceException(Exception):
-    """Exchange interface exception.
-
-    Attributes
-    ----------
-    message
-        Exception message.
-    """
-
-    def __init__(self, message: str, /) -> None:
-        """Initialize exception."""
+class ExchangeException(Exception):
+    def __init__(
+        self,
+        message: str,
+        /,
+        *,
+        status_code: Optional[PositiveInt] = None,
+        response_data: Optional[dict[str, Any]] = None,
+    ) -> None:
         super().__init__(message)
         self.message: str = message
-
-    def __str__(self) -> str:
-        """Return string representation."""
-        return self.message
-
-
-class InterfaceException(ExchangeInterfaceException):
-    """Interface-related exception."""
-
-
-class ExchangeException(ExchangeInterfaceException):
-    """Exchange-related exception."""
-
-
-class ExchangeAPIError(ExchangeException):
-    """Exchange API error.
-
-    Attributes
-    ----------
-    details
-        Details returned by the API.
-    """
-
-    def __init__(self, *args: Any, details: dict[str, Any] | None = None, **kwargs: Any) -> None:
-        """Initialize exception."""
-        super().__init__(*args, **kwargs)
-        self.details: dict[str, Any] = details if details is not None else {}
-
-    def __str__(self) -> str:
-        """Return string representation."""
-        return self.message.rstrip(".") + f" ({self.details})."
+        self.status_code: PositiveInt | None = status_code
+        self.response_data: dict[str, Any] = response_data or {}

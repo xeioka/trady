@@ -3,11 +3,11 @@
 # Resources
 # ---------
 # Packaging documentation:
-#   - https://packaging.python.org/en/latest/
+#  - https://packaging.python.org/en/latest/
 # Configuration overview:
-#   - https://packaging.python.org/en/latest/guides/writing-pyproject-toml/
+#  - https://packaging.python.org/en/latest/guides/writing-pyproject-toml/
 # Configuration specification:
-#   - https://packaging.python.org/en/latest/specifications/pyproject-toml/
+#  - https://packaging.python.org/en/latest/specifications/pyproject-toml/
 
 [project]
 name = "trady"
@@ -16,13 +16,13 @@ version = "0.0.1"
 readme = "README.md"
 requires-python = ">= 3.12"
 dependencies = [
-    # Core.
-    ## https://pypi.org/project/requests/
-    "requests==2.32.3",
-    ## https://pypi.org/project/pydantic/
-    "pydantic==2.10.1",
-    ## https://pypi.org/project/pydantic-settings/
-    "pydantic-settings==2.6.1",
+  # Core.
+  ## https://pypi.org/project/requests/
+  "requests==2.32.3",
+  ## https://pypi.org/project/pydantic/
+  "pydantic==2.10.1",
+  ## https://pypi.org/project/pydantic-settings/
+  "pydantic-settings==2.6.1",
 ]
 
 [build-system]
