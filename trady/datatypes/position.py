@@ -2,16 +2,13 @@
 
 from decimal import Decimal
 
-from pydantic import BaseModel, PositiveInt
-
-from .symbol import Symbol
+from pydantic import BaseModel
 
 
 class Position(BaseModel):
     # Parameters.
-    symbol: Symbol
+    symbol_name: str
     size: Decimal
-    leverage: PositiveInt
     # State.
     pnl: Decimal
 

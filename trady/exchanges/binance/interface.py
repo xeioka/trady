@@ -105,9 +105,7 @@ class Binance(ExchangeInterface):
             },
         )
         assert type(response_data) is list, f"type {type(response_data)} was not expected"
-        return [
-            self._parse_candlestick(symbol, candlestick_data) for candlestick_data in response_data
-        ]
+        return [self._parse_candlestick(candlestick_data) for candlestick_data in response_data]
 
     def _get_balance(self, asset: str, /) -> Balance:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Futures-Account-Balance-V3
@@ -119,8 +117,18 @@ class Binance(ExchangeInterface):
         assert type(response_data) is list, f"type {type(response_data)} was not expected"
         for balance_data in response_data:
             if balance_data["asset"] == asset:
-                return self._parse_balance(asset, balance_data)
+                return self._parse_balance(balance_data)
         raise ValueError(f"unknown asset {asset}")
+
+    def _get_positions(self) -> list[Position]:
+        # https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Account-Information-V3
+        response_data = self._dispatch_api_request(
+            "GET",
+            "v3/account",
+            params=self._sign_payload({}),
+        )
+        assert type(response_data) is dict, f"type {type(response_data)} was not expected"
+        return [self._parse_position(position_data) for position_data in response_data["positions"]]
 
     def _open_position(
         self,
@@ -188,7 +196,7 @@ class Binance(ExchangeInterface):
                     }
                 ),
             )
-        return Position(symbol=symbol, size=size, leverage=leverage, pnl=Decimal("0"))
+        return Position(symbol_name=symbol.name, size=size, pnl=Decimal("0"))
 
     def _set_margin_type(
         self,
@@ -253,13 +261,12 @@ class Binance(ExchangeInterface):
                     kwargs["price_step"] = rule_data["tickSize"]
         return Rules(**kwargs)
 
-    def _parse_candlestick(self, symbol: Symbol, candlestick_data: list[Any], /) -> Candlestick:
+    def _parse_candlestick(self, candlestick_data: list[Any], /) -> Candlestick:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Kline-Candlestick-Data#response-example
         volume = Decimal(candlestick_data[7])
         buy_volume = Decimal(candlestick_data[10])
         sell_volume = volume - buy_volume
         return Candlestick(
-            symbol=symbol,
             open_datetime=datetime.fromtimestamp(candlestick_data[0] / 1000),
             close_datetime=datetime.fromtimestamp(candlestick_data[6] / 1000),
             open=candlestick_data[1],
@@ -270,10 +277,17 @@ class Binance(ExchangeInterface):
             sell_volume=sell_volume,
         )
 
-    def _parse_balance(self, asset: str, balance_data: dict[str, Any], /) -> Balance:
+    def _parse_balance(self, balance_data: dict[str, Any], /) -> Balance:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Futures-Account-Balance-V3#response-example
         return Balance(
-            asset=asset,
             realized=balance_data["crossWalletBalance"],
             unrealized=balance_data["crossUnPnl"],
+        )
+
+    def _parse_position(self, position_data: dict[str, Any], /) -> Position:
+        # https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Account-Information-V3#response-example
+        return Position(
+            symbol_name=position_data["symbol"],
+            size=position_data["positionAmt"],
+            pnl=position_data["unrealizedProfit"],
         )

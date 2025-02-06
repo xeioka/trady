@@ -126,6 +126,10 @@ class ExchangeInterface(abc.ABC):
         """Retrieve asset balance."""
         return self._get_balance(asset)
 
+    def get_positions(self) -> list[Position]:
+        """Retrieve open positions."""
+        return self._get_positions()
+
     def open_position(
         self,
         symbol: Symbol,
@@ -210,6 +214,11 @@ class ExchangeInterface(abc.ABC):
     @abc.abstractmethod
     def _get_balance(self, asset: str, /) -> Balance:
         """Override this to implement `get_balance()`."""
+        pass
+
+    @abc.abstractmethod
+    def _get_positions(self) -> list[Position]:
+        """Override this to implement `get_positions()`."""
         pass
 
     @abc.abstractmethod
