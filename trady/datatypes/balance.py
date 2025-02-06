@@ -6,7 +6,6 @@ from pydantic import BaseModel
 
 
 class Balance(BaseModel):
-    asset: str
     realized: Decimal
     unrealized: Decimal
 

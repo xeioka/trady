@@ -5,11 +5,8 @@ from decimal import Decimal
 
 from pydantic import BaseModel
 
-from .symbol import Symbol
-
 
 class Candlestick(BaseModel):
-    symbol: Symbol
     # Interval.
     open_datetime: datetime
     close_datetime: datetime
