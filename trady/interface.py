@@ -163,6 +163,15 @@ class ExchangeInterface(abc.ABC):
             stop_loss=stop_loss,
         )
 
+    def close_position(self, position: Position, /) -> None:
+        self._close_position(position)
+
+    def close_positions(self, positions: list[Position], /) -> None:
+        self._close_positions(positions)
+
+    def close_all_positions(self) -> None:
+        self._close_all_positions()
+
     def _dispatch_api_request(
         self,
         method: Literal["GET", "POST"],
@@ -233,4 +242,19 @@ class ExchangeInterface(abc.ABC):
         stop_loss: Optional[Decimal] = None,
     ) -> Position:
         """Override this to implement `open_position()`."""
+        pass
+
+    @abc.abstractmethod
+    def _close_position(self, position: Position, /) -> None:
+        """Override this to implement `close_position()`."""
+        pass
+
+    @abc.abstractmethod
+    def _close_positions(self, positions: list[Position], /) -> None:
+        """Override this to implement `close_positions()`."""
+        pass
+
+    @abc.abstractmethod
+    def _close_all_positions(self) -> None:
+        """Override this to implement `close_all_positions()`."""
         pass
