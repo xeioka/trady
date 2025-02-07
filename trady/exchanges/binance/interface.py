@@ -142,7 +142,7 @@ class Binance(ExchangeInterface):
     ) -> Position:
         self._set_margin_type(symbol, "CROSSED")
         self._set_leverage(symbol, leverage)
-        # https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Place-Multiple-Orders
+        # https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api
         open_side, close_side = ("BUY", "SELL") if size > Decimal("0") else ("SELL", "BUY")
         base_order = {
             "symbol": symbol.name,
@@ -197,6 +197,33 @@ class Binance(ExchangeInterface):
                 ),
             )
         return Position(symbol_name=symbol.name, size=size, pnl=Decimal("0"))
+
+    def _close_position(self, position: Position, /) -> None:
+        # https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api
+        self._dispatch_api_request(
+            "POST",
+            "v1/order",
+            data=self._sign_payload(
+                {
+                    "symbol": position.symbol_name,
+                    "side": "SELL" if position.is_long else "BUY",
+                    "quantity": str(abs(position.size)),
+                    "type": "MARKET",
+                    "reduceOnly": "TRUE",
+                    "positionSide": "BOTH",
+                    "newOrderRespType": "RESULT",
+                    "recvWindow": 1000,
+                }
+            ),
+        )
+
+    def _close_positions(self, positions: list[Position], /) -> None:
+        for position in positions:
+            self._close_position(position)
+
+    def _close_all_positions(self) -> None:
+        positions = self._get_positions()
+        self._close_positions(positions)
 
     def _set_margin_type(
         self,
