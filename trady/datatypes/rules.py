@@ -3,7 +3,7 @@
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, PositiveInt
 
 
 class Rules(BaseModel):
@@ -13,6 +13,8 @@ class Rules(BaseModel):
     size_max_value: Optional[Decimal] = None
     size_max_notional: Optional[Decimal] = None
     size_step: Optional[Decimal] = None
+    # Leverage.
+    leverage_max_value: Optional[PositiveInt] = None
     # Price.
     price_min_value: Optional[Decimal] = None
     price_max_value: Optional[Decimal] = None
@@ -45,6 +47,11 @@ class Rules(BaseModel):
         if self.size_step:
             return (size // self.size_step) * self.size_step
         return size
+
+    def validate_leverage(self, leverage: PositiveInt, /) -> PositiveInt:
+        if self.leverage_max_value is not None and leverage > self.leverage_max_value:
+            raise ValueError(f"leverage must be <= {self.leverage_max_value}")
+        return leverage
 
     def validate_price(self, price: Decimal, /) -> Decimal:
         if self.price_min_value is not None and price < self.price_min_value:
