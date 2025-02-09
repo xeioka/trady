@@ -4,13 +4,13 @@ import abc
 import time
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Iterator, Literal, Optional
+from typing import Iterator, Literal, Optional
 
 from pydantic import PositiveInt
 from requests import Session
 from requests.status_codes import codes as status_codes
 
-from .datatypes import Balance, Candlestick, Position, Symbol
+from .datatypes import Balance, Candlestick, Position, Rules, Symbol
 from .exceptions import ExchangeException
 from .settings import ExchangeSettings
 
@@ -122,6 +122,10 @@ class ExchangeInterface(abc.ABC):
             start_datetime = candlesticks[-1].close_datetime
             time.sleep(self._settings.candlesticks_iterator_throttle)
 
+    def get_rules(self, symbols: list[Symbol], /) -> dict[Symbol, Rules]:
+        """Retrieve trading rules."""
+        return self._get_rules(symbols)
+
     def get_balance(self, asset: str, /) -> Balance:
         """Retrieve asset balance."""
         return self._get_balance(asset)
@@ -179,9 +183,9 @@ class ExchangeInterface(abc.ABC):
         /,
         *,
         query: Optional[str] = None,
-        params: Optional[dict[str, Any]] = None,
-        data: Optional[dict[str, Any]] = None,
-    ) -> dict[str, Any] | list[Any]:
+        params: Optional[dict] = None,
+        data: Optional[dict] = None,
+    ) -> dict | list:
         url = str(self._settings.api_url) + (f"{path}?{query}" if query else path)
         match method:
             case "GET":
@@ -218,6 +222,11 @@ class ExchangeInterface(abc.ABC):
         end_datetime: Optional[datetime] = None,
     ) -> list[Candlestick]:
         """Override this to implement `get_candlesticks()` and `get_candlesticks_iterator()`."""
+        pass
+
+    @abc.abstractmethod
+    def _get_rules(self, symbols: list[Symbol], /) -> dict[Symbol, Rules]:
+        """Override this to implement `get_rules()`."""
         pass
 
     @abc.abstractmethod

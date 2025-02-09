@@ -7,9 +7,10 @@ API documentation:
 """
 
 import hmac
+from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Literal, Optional
+from typing import Literal, Optional
 from urllib.parse import urlencode
 
 from pydantic import PositiveInt
@@ -54,7 +55,7 @@ class Binance(ExchangeInterface):
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/general-info#endpoint-security-type
         self._session.headers.update({"X-MBX-APIKEY": self._settings.api_key})  # type: ignore
 
-    def _sign_payload(self, payload: dict[str, Any], /) -> dict[str, Any]:
+    def _sign_payload(self, payload: dict, /) -> dict:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/general-info#signed-trade-and-user_data-endpoint-security
         payload["timestamp"] = int(datetime.now().timestamp() * 1000)
         payload["signature"] = hmac.new(
@@ -106,6 +107,29 @@ class Binance(ExchangeInterface):
         )
         assert type(response_data) is list, f"type {type(response_data)} was not expected"
         return [self._parse_candlestick(candlestick_data) for candlestick_data in response_data]
+
+    def _get_rules(self, symbols: list[Symbol], /) -> dict[Symbol, Rules]:
+        rules_data: dict[str, dict] = defaultdict(dict)
+        # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Exchange-Information
+        response_data = self._dispatch_api_request("GET", "v1/exchangeInfo")
+        assert type(response_data) is dict, f"type {type(response_data)} was not expected"
+        for symbol_data in response_data["symbols"]:
+            symbol_name = symbol_data["symbol"]
+            rules_data[symbol_name] = {"filters": symbol_data["filters"]}
+        # https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Notional-and-Leverage-Brackets
+        response_data = self._dispatch_api_request(
+            "GET",
+            "v1/leverageBracket",
+            params=self._sign_payload({}),
+        )
+        assert type(response_data) is list, f"type {type(response_data)} was not expected"
+        for symbol_data in response_data:
+            symbol_name = symbol_data["symbol"]
+            for bracket_data in symbol_data["brackets"]:
+                if bracket_data["bracket"] == 1 and bracket_data["notionalFloor"] == 0:
+                    rules_data[symbol_name]["bracket"] = bracket_data
+                    break
+        return {symbol: self._parse_rules(rules_data[symbol.name]) for symbol in symbols}
 
     def _get_balance(self, asset: str, /) -> Balance:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Futures-Account-Balance-V3
@@ -261,34 +285,14 @@ class Binance(ExchangeInterface):
             ),
         )
 
-    def _parse_symbol(self, symbol_data: dict[str, Any], /) -> Symbol:
+    def _parse_symbol(self, symbol_data: dict, /) -> Symbol:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Exchange-Information#response-example
-        rules = self._parse_rules(symbol_data["filters"])
         return Symbol(
             base_asset=symbol_data["baseAsset"],
             quote_asset=symbol_data["quoteAsset"],
-            rules=rules,
         )
 
-    def _parse_rules(self, rules_data: list[dict[str, Any]], /) -> Rules:
-        # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Exchange-Information#response-example
-        # https://developers.binance.com/docs/derivatives/usds-margined-futures/common-definition#symbol-filters
-        kwargs = {}
-        for rule_data in rules_data:
-            match rule_data["filterType"]:
-                case "LOT_SIZE":
-                    kwargs["size_min_value"] = rule_data["minQty"]
-                    kwargs["size_max_value"] = rule_data["maxQty"]
-                    kwargs["size_step"] = rule_data["stepSize"]
-                case "MIN_NOTIONAL":
-                    kwargs["size_min_notional"] = rule_data["notional"]
-                case "PRICE_FILTER":
-                    kwargs["price_min_value"] = rule_data["minPrice"]
-                    kwargs["price_max_value"] = rule_data["maxPrice"]
-                    kwargs["price_step"] = rule_data["tickSize"]
-        return Rules(**kwargs)
-
-    def _parse_candlestick(self, candlestick_data: list[Any], /) -> Candlestick:
+    def _parse_candlestick(self, candlestick_data: list, /) -> Candlestick:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Kline-Candlestick-Data#response-example
         volume = Decimal(candlestick_data[7])
         buy_volume = Decimal(candlestick_data[10])
@@ -304,14 +308,35 @@ class Binance(ExchangeInterface):
             sell_volume=sell_volume,
         )
 
-    def _parse_balance(self, balance_data: dict[str, Any], /) -> Balance:
+    def _parse_rules(self, rules_data: dict, /) -> Rules:
+        rules_kwargs = {}
+        # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Exchange-Information#response-example
+        # https://developers.binance.com/docs/derivatives/usds-margined-futures/common-definition#symbol-filters
+        for filter_data in rules_data["filters"]:
+            match filter_data["filterType"]:
+                case "LOT_SIZE":
+                    rules_kwargs["size_min_value"] = filter_data["minQty"]
+                    rules_kwargs["size_max_value"] = filter_data["maxQty"]
+                    rules_kwargs["size_step"] = filter_data["stepSize"]
+                case "MIN_NOTIONAL":
+                    rules_kwargs["size_min_notional"] = filter_data["notional"]
+                case "PRICE_FILTER":
+                    rules_kwargs["price_min_value"] = filter_data["minPrice"]
+                    rules_kwargs["price_max_value"] = filter_data["maxPrice"]
+                    rules_kwargs["price_step"] = filter_data["tickSize"]
+        # https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Notional-and-Leverage-Brackets#response-example
+        rules_kwargs["size_max_notional"] = rules_data["bracket"]["notionalCap"]
+        rules_kwargs["leverage_max_value"] = rules_data["bracket"]["initialLeverage"]
+        return Rules(**rules_kwargs)
+
+    def _parse_balance(self, balance_data: dict, /) -> Balance:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Futures-Account-Balance-V3#response-example
         return Balance(
             realized=balance_data["crossWalletBalance"],
             unrealized=balance_data["crossUnPnl"],
         )
 
-    def _parse_position(self, position_data: dict[str, Any], /) -> Position:
+    def _parse_position(self, position_data: dict, /) -> Position:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Account-Information-V3#response-example
         return Position(
             symbol_name=position_data["symbol"],

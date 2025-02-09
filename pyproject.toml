@@ -38,7 +38,7 @@ cache-dir = "local/.ruff_cache"
 # https://docs.astral.sh/ruff/settings/#lint
 [tool.ruff.lint]
 extend-select = ["D", "I"]
-ignore = ["D100", "D101", "D102", "D107", "D203", "D213", "D413"]
+ignore = ["D100", "D101", "D102", "D105", "D107", "D203", "D213", "D413"]
 
 # https://docs.astral.sh/ruff/settings/#lintisort
 [tool.ruff.lint.isort]
@@ -52,7 +52,6 @@ disallow_untyped_calls = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 disallow_untyped_decorators = true
-disallow_any_generics = true
 disallow_subclassing_any = true
 check_untyped_defs = true
 implicit_optional = true
