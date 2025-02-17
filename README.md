@@ -1,7 +1,5 @@
 # Trady
 
-> _Do you have any idea why they call him Franky "Four Fingers", Doug?_
-
 [![Linting](https://github.com/xeioka/trady/actions/workflows/linting.yaml/badge.svg)](https://github.com/xeioka/trady/actions/workflows/linting.yaml)
 
 A single interface for various exchanges.

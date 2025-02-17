@@ -32,4 +32,4 @@
 2. Implement settings by subclassing [`ExchangeSettings`](/trady/settings.py);
 3. Implement interface by subclassing [`ExchangeInterface`](/trady/interface.py);
 
-For example, see the [Binance implementation](/trady/exchanges/binance/).
+For an example, reference the [Binance implementation](/trady/exchanges/binance/).

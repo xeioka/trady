@@ -11,7 +11,7 @@ from requests import Session
 from requests.status_codes import codes as status_codes
 
 from .datatypes import Balance, Candlestick, Position, Rules, Symbol
-from .exceptions import ExchangeException
+from .exception import ExchangeException
 from .settings import ExchangeSettings
 
 
@@ -40,7 +40,7 @@ class ExchangeInterface(abc.ABC):
         return self._get_datetime()
 
     def get_symbols(self) -> list[Symbol]:
-        """Retrieve available symbols."""
+        """Retrieve trading symbols."""
         return self._get_symbols()
 
     def get_candlesticks(
@@ -60,7 +60,7 @@ class ExchangeInterface(abc.ABC):
         Parameters
         ----------
         symbol
-            A symbol to retrieve the candlesticks for.
+            Candlesticks symbol.
         interval
             Candlesticks interval (in seconds).
         number
@@ -97,7 +97,7 @@ class ExchangeInterface(abc.ABC):
         Parameters
         ----------
         symbol
-            A symbol to retrieve the candlesticks for.
+            Candlesticks symbol.
         interval
             Candlesticks interval (in seconds).
         start_datetime
@@ -122,17 +122,27 @@ class ExchangeInterface(abc.ABC):
             start_datetime = candlesticks[-1].close_datetime
             time.sleep(self._settings.candlesticks_iterator_throttle)
 
-    def get_rules(self, symbols: list[Symbol], /) -> dict[Symbol, Rules]:
-        """Retrieve trading rules."""
-        return self._get_rules(symbols)
+    def get_rules_map(self) -> dict[str, Rules]:
+        """Retrieve trading rules.
+
+        Returns
+        -------
+        A mapping between symbol names and rules.
+        """
+        return self._get_rules_map()
 
     def get_balance(self, asset: str, /) -> Balance:
         """Retrieve asset balance."""
         return self._get_balance(asset)
 
-    def get_positions(self) -> list[Position]:
-        """Retrieve open positions."""
-        return self._get_positions()
+    def get_positions_map(self) -> dict[str, Position]:
+        """Retrieve open positions.
+
+        Returns
+        -------
+        A mapping between symbol names and positions.
+        """
+        return self._get_positions_map()
 
     def open_position(
         self,
@@ -149,9 +159,9 @@ class ExchangeInterface(abc.ABC):
         Parameters
         ----------
         symbol
-            A symbol to open the position for.
+            Position symbol.
         size
-            Position size. Positive values for long, negative for short.
+            Position size (positive values for long, negative for short).
         leverage
             A leverage to use.
         take_profit
@@ -198,7 +208,7 @@ class ExchangeInterface(abc.ABC):
                 status_code=response.status_code,
                 response_data=response.json(),
             )
-        return response.json()  # type: ignore
+        return response.json()  # type: ignore[no-any-return]
 
     @abc.abstractmethod
     def _get_datetime(self) -> datetime:
@@ -225,8 +235,8 @@ class ExchangeInterface(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _get_rules(self, symbols: list[Symbol], /) -> dict[Symbol, Rules]:
-        """Override this to implement `get_rules()`."""
+    def _get_rules_map(self) -> dict[str, Rules]:
+        """Override this to implement `get_rules_map()`."""
         pass
 
     @abc.abstractmethod
@@ -235,8 +245,8 @@ class ExchangeInterface(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _get_positions(self) -> list[Position]:
-        """Override this to implement `get_positions()`."""
+    def _get_positions_map(self) -> dict[str, Position]:
+        """Override this to implement `get_positions_map()`."""
         pass
 
     @abc.abstractmethod

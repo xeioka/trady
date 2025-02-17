@@ -1,16 +1,17 @@
-"""Trading position."""
+"""Symbol position."""
 
 from decimal import Decimal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, PositiveInt
 
 
 class Position(BaseModel):
     # Parameters.
     symbol_name: str
     size: Decimal
+    leverage: PositiveInt
     # State.
-    pnl: Decimal
+    unrealized_pnl: Decimal
 
     @property
     def is_long(self) -> bool:

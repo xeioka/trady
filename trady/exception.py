@@ -1,4 +1,4 @@
-"""Exchange exceptions."""
+"""Exchange exception."""
 
 from typing import Optional
 
