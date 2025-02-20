@@ -1,4 +1,3 @@
 -r base.txt
 
-# https://pypi.org/project/pre-commit/
 pre-commit==4.0.1

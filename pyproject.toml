@@ -15,12 +15,8 @@ description = "A single interface for various exchanges."
 version = "0.2.0"
 requires-python = ">= 3.12"
 dependencies = [
-  # Core.
-  ## https://pypi.org/project/requests/
   "requests==2.32.3",
-  ## https://pypi.org/project/pydantic/
   "pydantic==2.10.1",
-  ## https://pypi.org/project/pydantic-settings/
   "pydantic-settings==2.6.1",
 ]
 
