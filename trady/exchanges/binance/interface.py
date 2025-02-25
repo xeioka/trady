@@ -23,15 +23,8 @@ from .settings import BinanceSettings
 
 
 class Binance(ExchangeInterface):
-    """Binance interface.
-
-    Attributes
-    ----------
-    INTERVAL_MAP
-        A mapping between intervals (in seconds) and the corresponding API values.
-    """
-
-    INTERVAL_MAP: dict[int, str] = {
+    # A mapping between intervals (in seconds) and the corresponding API values.
+    _INTERVAL_MAP: dict[int, str] = {
         60: "1m",
         60 * 3: "3m",
         60 * 5: "5m",
@@ -55,15 +48,15 @@ class Binance(ExchangeInterface):
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/general-info#endpoint-security-type
         self._session.headers.update({"X-MBX-APIKEY": self._settings.api_key})  # type: ignore[attr-defined]
 
-    def _sign_payload(self, payload: dict, /) -> dict:
+    def _sign_request_data(self, data: dict, /) -> dict:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/general-info#signed-trade-and-user_data-endpoint-security
-        payload["timestamp"] = int(datetime.now().timestamp() * 1000)
-        payload["signature"] = hmac.new(
+        data["timestamp"] = int(datetime.now().timestamp() * 1000)
+        data["signature"] = hmac.new(
             self._settings.api_secret.encode(),  # type: ignore[attr-defined]
-            msg=urlencode(payload).encode(),
+            msg=urlencode(data).encode(),
             digestmod="SHA256",
         ).hexdigest()
-        return payload
+        return data
 
     def _get_datetime(self) -> datetime:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Check-Server-Time
@@ -91,15 +84,15 @@ class Binance(ExchangeInterface):
         start_datetime: Optional[datetime] = None,
         end_datetime: Optional[datetime] = None,
     ) -> list[Candlestick]:
-        if interval not in self.INTERVAL_MAP:
+        if interval not in self._INTERVAL_MAP:
             raise ValueError(f"unknown interval {interval}")
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Kline-Candlestick-Data
         response_data = self._dispatch_api_request(
             "GET",
             "v1/klines",
-            params={
+            query_dict={
                 "symbol": symbol.name,
-                "interval": self.INTERVAL_MAP[interval],
+                "interval": self._INTERVAL_MAP[interval],
                 "limit": number,
                 "startTime": int(start_datetime.timestamp() * 1000) if start_datetime else None,
                 "endTime": int(end_datetime.timestamp() * 1000) if end_datetime else None,
@@ -121,7 +114,7 @@ class Binance(ExchangeInterface):
         response_data = self._dispatch_api_request(
             "GET",
             "v1/leverageBracket",
-            params=self._sign_payload({}),
+            query_dict=self._sign_request_data({}),
         )
         assert type(response_data) is list, f"type {type(response_data)} was not expected"
         for symbol_data in response_data:
@@ -142,7 +135,7 @@ class Binance(ExchangeInterface):
         response_data = self._dispatch_api_request(
             "GET",
             "v3/balance",
-            params=self._sign_payload({}),
+            query_dict=self._sign_request_data({}),
         )
         assert type(response_data) is list, f"type {type(response_data)} was not expected"
         for balance_data in response_data:
@@ -155,7 +148,7 @@ class Binance(ExchangeInterface):
         response_data = self._dispatch_api_request(
             "GET",
             "v2/positionRisk",
-            params=self._sign_payload({}),
+            query_dict=self._sign_request_data({}),
         )
         assert type(response_data) is list, f"type {type(response_data)} was not expected"
         return {
@@ -187,7 +180,7 @@ class Binance(ExchangeInterface):
         self._dispatch_api_request(
             "POST",
             "v1/order",
-            data=self._sign_payload(
+            payload=self._sign_request_data(
                 {
                     **base_order,
                     "side": open_side,
@@ -200,7 +193,7 @@ class Binance(ExchangeInterface):
             self._dispatch_api_request(
                 "POST",
                 "v1/order",
-                data=self._sign_payload(
+                payload=self._sign_request_data(
                     {
                         **base_order,
                         "side": close_side,
@@ -217,7 +210,7 @@ class Binance(ExchangeInterface):
             self._dispatch_api_request(
                 "POST",
                 "v1/order",
-                data=self._sign_payload(
+                payload=self._sign_request_data(
                     {
                         **base_order,
                         "side": close_side,
@@ -242,7 +235,7 @@ class Binance(ExchangeInterface):
         self._dispatch_api_request(
             "POST",
             "v1/order",
-            data=self._sign_payload(
+            payload=self._sign_request_data(
                 {
                     "symbol": position.symbol_name,
                     "side": "SELL" if position.is_long else "BUY",
@@ -276,7 +269,7 @@ class Binance(ExchangeInterface):
             self._dispatch_api_request(
                 "POST",
                 "v1/marginType",
-                data=self._sign_payload(
+                payload=self._sign_request_data(
                     {
                         "symbol": symbol.name,
                         "marginType": margin_type,
@@ -293,7 +286,7 @@ class Binance(ExchangeInterface):
         self._dispatch_api_request(
             "POST",
             "v1/leverage",
-            data=self._sign_payload(
+            payload=self._sign_request_data(
                 {
                     "symbol": symbol.name,
                     "leverage": leverage,

@@ -178,12 +178,15 @@ class ExchangeInterface(abc.ABC):
         )
 
     def close_position(self, position: Position, /) -> None:
+        """Close open position."""
         self._close_position(position)
 
     def close_positions(self, positions: list[Position], /) -> None:
+        """Close open positions."""
         self._close_positions(positions)
 
     def close_all_positions(self) -> None:
+        """Close all open positions."""
         self._close_all_positions()
 
     def _dispatch_api_request(
@@ -192,16 +195,16 @@ class ExchangeInterface(abc.ABC):
         path: str,
         /,
         *,
-        query: Optional[str] = None,
-        params: Optional[dict] = None,
-        data: Optional[dict] = None,
+        query_str: Optional[str] = None,
+        query_dict: Optional[dict] = None,
+        payload: Optional[dict] = None,
     ) -> dict | list:
-        url = str(self._settings.api_url) + (f"{path}?{query}" if query else path)
+        url = str(self._settings.api_url) + (f"{path}?{query_str}" if query_str else path)
         match method:
             case "GET":
-                response = self._session.get(url, params=params)
+                response = self._session.get(url, params=query_dict)
             case "POST":
-                response = self._session.post(url, params=params, data=data)
+                response = self._session.post(url, params=query_dict, data=payload)
         if response.status_code != status_codes.OK:
             raise ExchangeException(
                 f"API request returned {response.status_code}",

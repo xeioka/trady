@@ -2,7 +2,7 @@
 
 ## Requirements
 
-1. [Python](https://www.python.org) >= 3.12;
+- [Python](https://www.python.org) >= 3.12;
 
 ## Setup
 

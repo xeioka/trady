@@ -2,10 +2,8 @@
 #
 # Resources
 # ---------
-# Pre-commit documentation:
+# Documentation:
 #   - https://pre-commit.com
-# Configuration specification:
-#   - https://pre-commit.com/#adding-pre-commit-plugins-to-your-project
 
 default_language_version:
   python: python3.12
