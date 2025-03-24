@@ -7,16 +7,16 @@ from pydantic import BaseModel, PositiveInt
 
 
 class Rules(BaseModel):
-    # Size.
+    # Position size (absolute value).
     size_min_value: Optional[Decimal] = None
     size_max_value: Optional[Decimal] = None
     size_step: Optional[Decimal] = None
-    # Notional.
+    # Position notional (absolute value).
     notional_min_value: Optional[Decimal] = None
     notional_max_value: Optional[Decimal] = None
-    # Leverage.
+    # Position leverage.
     leverage_max_value: Optional[PositiveInt] = None
-    # Price.
+    # TP/SL price.
     price_min_value: Optional[Decimal] = None
     price_max_value: Optional[Decimal] = None
     price_step: Optional[Decimal] = None

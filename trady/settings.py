@@ -1,14 +1,8 @@
-"""Abstract exchange settings.
+"""Abstract exchange settings."""
 
-Every exchange implementation must define its own settings by subclassing `ExchangeSettings`.
+from typing import Self
 
-Resources
----------
-Pydantic settings:
-    - https://docs.pydantic.dev/latest/concepts/pydantic_settings/
-"""
-
-from pydantic import HttpUrl, NonNegativeFloat, PositiveInt
+from pydantic import HttpUrl, NonNegativeFloat, PositiveInt, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -35,3 +29,9 @@ class ExchangeSettings(BaseSettings, env_file=".env", env_prefix="trady__"):
     api_url: HttpUrl
     candlesticks_max_number: PositiveInt
     candlesticks_iterator_throttle: NonNegativeFloat
+
+    @model_validator(mode="after")
+    def validate_settings(self) -> Self:
+        # Ensure that `api_url` has no trailing slash.
+        self.api_url = HttpUrl(str(self.api_url).rstrip("/"))
+        return self

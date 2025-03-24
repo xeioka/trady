@@ -1,7 +1,7 @@
 """A single interface for various exchanges."""
 
 from .datatypes import Balance, Candlestick, Position, Rules, Symbol
-from .exception import ExchangeException
+from .exceptions import ExchangeException
 from .exchanges import Binance
 from .interface import ExchangeInterface
 

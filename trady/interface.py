@@ -1,24 +1,22 @@
 """Abstract exchange interface."""
 
-import abc
 import time
 from datetime import datetime
 from decimal import Decimal
 from typing import Iterator, Literal, Optional
 
 from pydantic import PositiveInt
-from requests import Session
-from requests.status_codes import codes as status_codes
+from requests import Session, status_codes
 
 from .datatypes import Balance, Candlestick, Position, Rules, Symbol
-from .exception import ExchangeException
+from .exceptions import ExchangeException
 from .settings import ExchangeSettings
 
 
-class ExchangeInterface(abc.ABC):
+class ExchangeInterface:
     """Abstract exchange interface.
 
-    Public interface methods are implemented by overriding their protected
+    Public interface methods should be implemented by overriding their protected
     counterpart and utilizing `_dispatch_api_request()` for making API requests.
 
     Examples
@@ -27,9 +25,9 @@ class ExchangeInterface(abc.ABC):
     """
 
     @classmethod
-    @abc.abstractmethod
     def _get_settings(cls) -> ExchangeSettings:
-        pass
+        """Override this to implement exchange-specific settings."""
+        raise NotImplementedError
 
     def __init__(self) -> None:
         self._settings: ExchangeSettings = self._get_settings()
@@ -40,7 +38,7 @@ class ExchangeInterface(abc.ABC):
         return self._get_datetime()
 
     def get_symbols(self) -> list[Symbol]:
-        """Retrieve trading symbols."""
+        """Retrieve active symbols."""
         return self._get_symbols()
 
     def get_candlesticks(
@@ -122,27 +120,33 @@ class ExchangeInterface(abc.ABC):
             start_datetime = candlesticks[-1].close_datetime
             time.sleep(self._settings.candlesticks_iterator_throttle)
 
-    def get_rules_map(self) -> dict[str, Rules]:
+    def get_rules(self) -> dict[str, Rules]:
         """Retrieve trading rules.
 
         Returns
         -------
         A mapping between symbol names and rules.
         """
-        return self._get_rules_map()
+        return self._get_rules()
 
     def get_balance(self, asset: str, /) -> Balance:
-        """Retrieve asset balance."""
+        """Retrieve asset balance.
+
+        Parameters
+        ----------
+        asset
+            Asset name.
+        """
         return self._get_balance(asset)
 
-    def get_positions_map(self) -> dict[str, Position]:
+    def get_positions(self) -> dict[str, Position]:
         """Retrieve open positions.
 
         Returns
         -------
         A mapping between symbol names and positions.
         """
-        return self._get_positions_map()
+        return self._get_positions()
 
     def open_position(
         self,
@@ -178,15 +182,27 @@ class ExchangeInterface(abc.ABC):
         )
 
     def close_position(self, position: Position, /) -> None:
-        """Close open position."""
+        """Close position.
+
+        Parameters
+        ----------
+        position
+            A position to close.
+        """
         self._close_position(position)
 
     def close_positions(self, positions: list[Position], /) -> None:
-        """Close open positions."""
+        """Close positions.
+
+        Parameters
+        ----------
+        positions
+            Positions to close.
+        """
         self._close_positions(positions)
 
     def close_all_positions(self) -> None:
-        """Close all open positions."""
+        """Close all positions."""
         self._close_all_positions()
 
     def _dispatch_api_request(
@@ -199,13 +215,15 @@ class ExchangeInterface(abc.ABC):
         query_dict: Optional[dict] = None,
         payload: Optional[dict] = None,
     ) -> dict | list:
-        url = str(self._settings.api_url) + (f"{path}?{query_str}" if query_str else path)
+        url = str(self._settings.api_url) + path
+        if query_str:
+            url = f"{url}?{query_str}"
         match method:
             case "GET":
                 response = self._session.get(url, params=query_dict)
             case "POST":
                 response = self._session.post(url, params=query_dict, data=payload)
-        if response.status_code != status_codes.OK:
+        if response.status_code != status_codes.codes.OK:
             raise ExchangeException(
                 f"API request returned {response.status_code}",
                 status_code=response.status_code,
@@ -213,17 +231,14 @@ class ExchangeInterface(abc.ABC):
             )
         return response.json()  # type: ignore[no-any-return]
 
-    @abc.abstractmethod
     def _get_datetime(self) -> datetime:
         """Override this to implement `get_datetime()`."""
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def _get_symbols(self) -> list[Symbol]:
         """Override this to implement `get_symbols()`."""
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def _get_candlesticks(
         self,
         symbol: Symbol,
@@ -235,24 +250,20 @@ class ExchangeInterface(abc.ABC):
         end_datetime: Optional[datetime] = None,
     ) -> list[Candlestick]:
         """Override this to implement `get_candlesticks()` and `get_candlesticks_iterator()`."""
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
-    def _get_rules_map(self) -> dict[str, Rules]:
-        """Override this to implement `get_rules_map()`."""
-        pass
+    def _get_rules(self) -> dict[str, Rules]:
+        """Override this to implement `get_rules()`."""
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def _get_balance(self, asset: str, /) -> Balance:
         """Override this to implement `get_balance()`."""
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
-    def _get_positions_map(self) -> dict[str, Position]:
-        """Override this to implement `get_positions_map()`."""
-        pass
+    def _get_positions(self) -> dict[str, Position]:
+        """Override this to implement `get_positions()`."""
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def _open_position(
         self,
         symbol: Symbol,
@@ -264,19 +275,16 @@ class ExchangeInterface(abc.ABC):
         stop_loss: Optional[Decimal] = None,
     ) -> Position:
         """Override this to implement `open_position()`."""
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def _close_position(self, position: Position, /) -> None:
         """Override this to implement `close_position()`."""
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def _close_positions(self, positions: list[Position], /) -> None:
         """Override this to implement `close_positions()`."""
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def _close_all_positions(self) -> None:
         """Override this to implement `close_all_positions()`."""
-        pass
+        raise NotImplementedError

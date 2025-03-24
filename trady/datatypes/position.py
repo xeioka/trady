@@ -11,7 +11,7 @@ class Position(BaseModel):
     size: Decimal
     leverage: PositiveInt
     # State.
-    unrealized_pnl: Decimal
+    pnl: Decimal
 
     @property
     def is_long(self) -> bool:

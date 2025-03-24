@@ -16,7 +16,7 @@ from urllib.parse import urlencode
 from pydantic import PositiveInt
 
 from trady.datatypes import Balance, Candlestick, Position, Rules, Symbol
-from trady.exception import ExchangeException
+from trady.exceptions import ExchangeException
 from trady.interface import ExchangeInterface
 
 from .settings import BinanceSettings
@@ -60,17 +60,17 @@ class Binance(ExchangeInterface):
 
     def _get_datetime(self) -> datetime:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Check-Server-Time
-        response_data = self._dispatch_api_request("GET", "v1/time")
-        assert type(response_data) is dict, f"type {type(response_data)} was not expected"
-        return datetime.fromtimestamp(response_data["serverTime"] / 1000)
+        response_data = self._dispatch_api_request("GET", "/v1/time")
+        timestamp = response_data["serverTime"] / 1000  # type: ignore[call-overload]
+        return datetime.fromtimestamp(timestamp)
 
     def _get_symbols(self) -> list[Symbol]:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Exchange-Information
-        response_data = self._dispatch_api_request("GET", "v1/exchangeInfo")
-        assert type(response_data) is dict, f"type {type(response_data)} was not expected"
+        response_data = self._dispatch_api_request("GET", "/v1/exchangeInfo")
+        symbols_data = response_data["symbols"]  # type: ignore[call-overload]
         return [
             self._parse_symbol(symbol_data)
-            for symbol_data in response_data["symbols"]
+            for symbol_data in symbols_data
             if symbol_data["status"] == "TRADING" and symbol_data["contractType"] == "PERPETUAL"
         ]
 
@@ -87,9 +87,9 @@ class Binance(ExchangeInterface):
         if interval not in self._INTERVAL_MAP:
             raise ValueError(f"unknown interval {interval}")
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Kline-Candlestick-Data
-        response_data = self._dispatch_api_request(
+        candlesticks_data = self._dispatch_api_request(
             "GET",
-            "v1/klines",
+            "/v1/klines",
             query_dict={
                 "symbol": symbol.name,
                 "interval": self._INTERVAL_MAP[interval],
@@ -98,26 +98,24 @@ class Binance(ExchangeInterface):
                 "endTime": int(end_datetime.timestamp() * 1000) if end_datetime else None,
             },
         )
-        assert type(response_data) is list, f"type {type(response_data)} was not expected"
-        return [self._parse_candlestick(candlestick_data) for candlestick_data in response_data]
+        return [self._parse_candlestick(candlestick_data) for candlestick_data in candlesticks_data]
 
-    def _get_rules_map(self) -> dict[str, Rules]:
+    def _get_rules(self) -> dict[str, Rules]:
         # A mapping between symbol names and rules data.
         rules_data_map: dict[str, dict] = defaultdict(dict)
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Exchange-Information
-        response_data = self._dispatch_api_request("GET", "v1/exchangeInfo")
-        assert type(response_data) is dict, f"type {type(response_data)} was not expected"
-        for symbol_data in response_data["symbols"]:
+        response_data = self._dispatch_api_request("GET", "/v1/exchangeInfo")
+        symbols_data = response_data["symbols"]  # type: ignore[call-overload]
+        for symbol_data in symbols_data:
             symbol_name = symbol_data["symbol"]
             rules_data_map[symbol_name] = {"filters": symbol_data["filters"]}
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Notional-and-Leverage-Brackets
-        response_data = self._dispatch_api_request(
+        symbols_data = self._dispatch_api_request(
             "GET",
-            "v1/leverageBracket",
+            "/v1/leverageBracket",
             query_dict=self._sign_request_data({}),
         )
-        assert type(response_data) is list, f"type {type(response_data)} was not expected"
-        for symbol_data in response_data:
+        for symbol_data in symbols_data:
             symbol_name = symbol_data["symbol"]
             if symbol_name not in rules_data_map:
                 continue
@@ -132,28 +130,26 @@ class Binance(ExchangeInterface):
 
     def _get_balance(self, asset: str, /) -> Balance:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Futures-Account-Balance-V3
-        response_data = self._dispatch_api_request(
+        balances_data = self._dispatch_api_request(
             "GET",
-            "v3/balance",
+            "/v3/balance",
             query_dict=self._sign_request_data({}),
         )
-        assert type(response_data) is list, f"type {type(response_data)} was not expected"
-        for balance_data in response_data:
+        for balance_data in balances_data:
             if balance_data["asset"] == asset:
                 return self._parse_balance(balance_data)
         raise ValueError(f"unknown asset {asset}")
 
-    def _get_positions_map(self) -> dict[str, Position]:
+    def _get_positions(self) -> dict[str, Position]:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Position-Information-V2
-        response_data = self._dispatch_api_request(
+        positions_data = self._dispatch_api_request(
             "GET",
-            "v2/positionRisk",
+            "/v2/positionRisk",
             query_dict=self._sign_request_data({}),
         )
-        assert type(response_data) is list, f"type {type(response_data)} was not expected"
         return {
             position_data["symbol"]: self._parse_position(position_data)
-            for position_data in response_data
+            for position_data in positions_data
             if Decimal(position_data["positionAmt"]) != Decimal("0")
         }
 
@@ -179,7 +175,7 @@ class Binance(ExchangeInterface):
         }
         self._dispatch_api_request(
             "POST",
-            "v1/order",
+            "/v1/order",
             payload=self._sign_request_data(
                 {
                     **base_order,
@@ -192,7 +188,7 @@ class Binance(ExchangeInterface):
         if take_profit is not None:
             self._dispatch_api_request(
                 "POST",
-                "v1/order",
+                "/v1/order",
                 payload=self._sign_request_data(
                     {
                         **base_order,
@@ -209,7 +205,7 @@ class Binance(ExchangeInterface):
         if stop_loss is not None:
             self._dispatch_api_request(
                 "POST",
-                "v1/order",
+                "/v1/order",
                 payload=self._sign_request_data(
                     {
                         **base_order,
@@ -227,14 +223,14 @@ class Binance(ExchangeInterface):
             symbol_name=symbol.name,
             size=size,
             leverage=leverage,
-            unrealized_pnl=Decimal("0"),
+            pnl=Decimal("0"),
         )
 
     def _close_position(self, position: Position, /) -> None:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api
         self._dispatch_api_request(
             "POST",
-            "v1/order",
+            "/v1/order",
             payload=self._sign_request_data(
                 {
                     "symbol": position.symbol_name,
@@ -254,7 +250,7 @@ class Binance(ExchangeInterface):
             self._close_position(position)
 
     def _close_all_positions(self) -> None:
-        positions_map = self.get_positions_map()
+        positions_map = self.get_positions()
         positions = list(positions_map.values())
         self._close_positions(positions)
 
@@ -268,7 +264,7 @@ class Binance(ExchangeInterface):
         try:
             self._dispatch_api_request(
                 "POST",
-                "v1/marginType",
+                "/v1/marginType",
                 payload=self._sign_request_data(
                     {
                         "symbol": symbol.name,
@@ -285,7 +281,7 @@ class Binance(ExchangeInterface):
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Change-Initial-Leverage
         self._dispatch_api_request(
             "POST",
-            "v1/leverage",
+            "/v1/leverage",
             payload=self._sign_request_data(
                 {
                     "symbol": symbol.name,
@@ -351,5 +347,5 @@ class Binance(ExchangeInterface):
             symbol_name=position_data["symbol"],
             size=position_data["positionAmt"],
             leverage=position_data["leverage"],
-            unrealized_pnl=position_data["unRealizedProfit"],
+            pnl=position_data["unRealizedProfit"],
         )

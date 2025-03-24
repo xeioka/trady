@@ -7,10 +7,10 @@ from pydantic import BaseModel
 
 
 class Candlestick(BaseModel):
-    # Interval.
+    # Open/close datetime.
     open_datetime: datetime
     close_datetime: datetime
-    # OHLC.
+    # Open/high/low/close price.
     open: Decimal
     high: Decimal
     low: Decimal

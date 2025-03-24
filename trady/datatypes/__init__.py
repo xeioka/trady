@@ -7,10 +7,4 @@ from .rules import Rules
 from .symbol import Symbol
 
 
-__all__ = (
-    "Balance",
-    "Candlestick",
-    "Position",
-    "Rules",
-    "Symbol",
-)
+__all__ = ("Balance", "Candlestick", "Position", "Rules", "Symbol")
