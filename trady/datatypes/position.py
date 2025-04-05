@@ -15,8 +15,8 @@ class Position(BaseModel):
 
     @property
     def is_long(self) -> bool:
-        return self.size > Decimal("0")
+        return self.size > 0
 
     @property
     def is_short(self) -> bool:
-        return self.size < Decimal("0")
+        return self.size < 0

@@ -217,7 +217,7 @@ class ExchangeInterface:
     ) -> dict | list:
         url = str(self._settings.api_url) + path
         if query_str:
-            url = f"{url}?{query_str}"
+            url = url + "?" + query_str.lstrip("?")
         match method:
             case "GET":
                 response = self._session.get(url, params=query_dict)
