@@ -26,7 +26,7 @@ repos:
       - id: mypy
         args: []
         additional_dependencies: [
-          types-requests==2.32.0.20241016,
           pydantic==2.10.1,
           pydantic-settings==2.6.1,
+          types-requests==2.32.0.20241016,
         ]

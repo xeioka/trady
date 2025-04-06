@@ -12,9 +12,9 @@ version = "0.1.0"
 readme = "README.md"
 requires-python = ">= 3.12"
 dependencies = [
-  "requests==2.32.3",
   "pydantic==2.10.1",
   "pydantic-settings==2.6.1",
+  "requests==2.32.3",
 ]
 
 [build-system]
@@ -30,7 +30,7 @@ cache-dir = "local/.ruff_cache"
 # https://docs.astral.sh/ruff/settings/#lint
 [tool.ruff.lint]
 extend-select = ["D", "I"]
-ignore = ["D100", "D101", "D102", "D105", "D107", "D203", "D213", "D413"]
+ignore = ["D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107", "D203", "D213", "D413"]
 
 # https://docs.astral.sh/ruff/settings/#lintisort
 [tool.ruff.lint.isort]
@@ -39,7 +39,6 @@ lines-after-imports = 2
 # https://mypy.readthedocs.io/en/stable/config_file.html
 [tool.mypy]
 python_version = "3.12"
-plugins = ["pydantic.mypy"]
 check_untyped_defs = true
 implicit_optional = true
 disallow_untyped_calls = true

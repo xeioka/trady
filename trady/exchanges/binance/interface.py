@@ -7,7 +7,6 @@ API documentation:
 """
 
 import hmac
-from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal
 from typing import Literal, Optional
@@ -102,7 +101,7 @@ class Binance(ExchangeInterface):
 
     def _get_rules(self) -> dict[str, Rules]:
         # A mapping between symbol names and rules data.
-        rules_data_map: dict[str, dict] = defaultdict(dict)
+        rules_data_map: dict[str, dict] = {}
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Exchange-Information
         response_data = self._dispatch_api_request("GET", "/v1/exchangeInfo")
         symbols_data = response_data["symbols"]  # type: ignore[call-overload]
@@ -120,7 +119,7 @@ class Binance(ExchangeInterface):
             if symbol_name not in rules_data_map:
                 continue
             for bracket_data in symbol_data["brackets"]:
-                if Decimal(bracket_data["notionalFloor"]) == Decimal("0"):
+                if Decimal(bracket_data["notionalFloor"]) == 0:
                     rules_data_map[symbol_name]["bracket"] = bracket_data
                     break
         return {
@@ -150,7 +149,7 @@ class Binance(ExchangeInterface):
         return {
             position_data["symbol"]: self._parse_position(position_data)
             for position_data in positions_data
-            if Decimal(position_data["positionAmt"]) != Decimal("0")
+            if Decimal(position_data["positionAmt"]) != 0
         }
 
     def _open_position(
@@ -166,7 +165,7 @@ class Binance(ExchangeInterface):
         self._set_margin_type(symbol, "CROSSED")
         self._set_leverage(symbol, leverage)
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api
-        open_side, close_side = ("BUY", "SELL") if size > Decimal("0") else ("SELL", "BUY")
+        open_side, close_side = ("BUY", "SELL") if size > 0 else ("SELL", "BUY")
         base_order = {
             "symbol": symbol.name,
             "positionSide": "BOTH",
@@ -260,8 +259,8 @@ class Binance(ExchangeInterface):
         margin_type: Literal["CROSSED", "ISOLATED"],
         /,
     ) -> None:
-        # https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Change-Margin-Type
         try:
+            # https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Change-Margin-Type
             self._dispatch_api_request(
                 "POST",
                 "/v1/marginType",

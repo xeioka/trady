@@ -16,7 +16,9 @@
 2. Create a Python virtual environment and install the requirements:
 
     ```sh
-    python3.12 -m venv .venv && source .venv/bin/activate
+    python3.12 -m venv .venv
+    source .venv/bin/activate
+    pip install --upgrade pip
     pip install -r requirements/dev.txt
     ```
 
