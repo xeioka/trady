@@ -6,7 +6,7 @@ from pydantic import HttpUrl, NonNegativeFloat, PositiveInt, model_validator
 from pydantic_settings import BaseSettings
 
 
-class ExchangeSettings(BaseSettings, env_file=".env", env_prefix="trady__"):
+class ExchangeSettings(BaseSettings, env_file=".env", env_prefix="trady__", extra="ignore"):
     """Abstract exchange settings.
 
     Subclasses must provide a unique `env_prefix` value (e.g. `trady__binance__`).
