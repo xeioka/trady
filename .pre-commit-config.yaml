@@ -28,5 +28,5 @@ repos:
         additional_dependencies: [
           pydantic==2.10.1,
           pydantic-settings==2.6.1,
-          types-requests==2.32.0.20241016,
+          types-requests==2.32.0.20250515,
         ]

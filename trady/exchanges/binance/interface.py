@@ -119,7 +119,7 @@ class Binance(ExchangeInterface):
             if symbol_name not in rules_data_map:
                 continue
             for bracket_data in symbol_data["brackets"]:
-                if Decimal(bracket_data["notionalFloor"]) == 0:
+                if int(bracket_data["bracket"]) == 1 or Decimal(bracket_data["notionalFloor"]) == 0:
                     rules_data_map[symbol_name]["bracket"] = bracket_data
                     break
         return {
@@ -222,7 +222,7 @@ class Binance(ExchangeInterface):
             symbol_name=symbol.name,
             size=size,
             leverage=leverage,
-            pnl=Decimal("0"),
+            pnl=Decimal(0),
         )
 
     def _close_position(self, position: Position, /) -> None:

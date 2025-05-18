@@ -21,7 +21,7 @@ class ExchangeInterface:
 
     Examples
     --------
-    See `trady.exchanges.binance`.
+    See `trady.exchanges.binance.interface`.
     """
 
     @classmethod

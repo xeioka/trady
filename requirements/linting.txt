@@ -2,7 +2,7 @@
 mypy==1.13.0
 ruff==0.7.0
 
-# Stubs.
+# Typing.
 pydantic==2.10.1
 pydantic-settings==2.6.1
-types-requests==2.32.0.20241016
+types-requests==2.32.0.20250515

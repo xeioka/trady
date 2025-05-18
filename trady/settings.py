@@ -23,7 +23,7 @@ class ExchangeSettings(BaseSettings, env_file=".env", env_prefix="trady__", extr
 
     Examples
     --------
-    See `trady.exchanges.binance`.
+    See `trady.exchanges.binance.settings`.
     """
 
     api_url: HttpUrl
