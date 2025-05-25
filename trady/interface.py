@@ -43,7 +43,7 @@ class ExchangeInterface:
 
     def get_candlesticks(
         self,
-        symbol: Symbol,
+        symbol_name: str,
         interval: PositiveInt,
         /,
         *,
@@ -57,7 +57,7 @@ class ExchangeInterface:
 
         Parameters
         ----------
-        symbol
+        symbol_name
             Candlesticks symbol.
         interval
             Candlesticks interval (in seconds).
@@ -73,7 +73,7 @@ class ExchangeInterface:
         elif number > self._settings.candlesticks_max_number:
             raise ValueError(f"number must be <= {self._settings.candlesticks_max_number}")
         return self._get_candlesticks(
-            symbol,
+            symbol_name,
             interval,
             number=number,
             start_datetime=start_datetime,
@@ -82,7 +82,7 @@ class ExchangeInterface:
 
     def get_candlesticks_iterator(
         self,
-        symbol: Symbol,
+        symbol_name: str,
         interval: PositiveInt,
         start_datetime: datetime,
         end_datetime: datetime,
@@ -94,7 +94,7 @@ class ExchangeInterface:
 
         Parameters
         ----------
-        symbol
+        symbol_name
             Candlesticks symbol.
         interval
             Candlesticks interval (in seconds).
@@ -105,7 +105,7 @@ class ExchangeInterface:
         """
         while True:
             candlesticks = self.get_candlesticks(
-                symbol,
+                symbol_name,
                 interval,
                 number=self._settings.candlesticks_max_number,
                 start_datetime=start_datetime,
@@ -150,7 +150,7 @@ class ExchangeInterface:
 
     def open_position(
         self,
-        symbol: Symbol,
+        symbol_name: str,
         size: Decimal,
         /,
         *,
@@ -162,7 +162,7 @@ class ExchangeInterface:
 
         Parameters
         ----------
-        symbol
+        symbol_name
             Position symbol.
         size
             Position size (positive values for long, negative for short).
@@ -174,7 +174,7 @@ class ExchangeInterface:
             Stop loss price.
         """
         return self._open_position(
-            symbol,
+            symbol_name,
             size,
             leverage=leverage,
             take_profit=take_profit,
@@ -241,7 +241,7 @@ class ExchangeInterface:
 
     def _get_candlesticks(
         self,
-        symbol: Symbol,
+        symbol_name: str,
         interval: PositiveInt,
         /,
         *,
@@ -266,7 +266,7 @@ class ExchangeInterface:
 
     def _open_position(
         self,
-        symbol: Symbol,
+        symbol_name: str,
         size: Decimal,
         /,
         *,

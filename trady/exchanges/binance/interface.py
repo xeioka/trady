@@ -75,7 +75,7 @@ class Binance(ExchangeInterface):
 
     def _get_candlesticks(
         self,
-        symbol: Symbol,
+        symbol_name: str,
         interval: PositiveInt,
         /,
         *,
@@ -90,7 +90,7 @@ class Binance(ExchangeInterface):
             "GET",
             "/v1/klines",
             query_dict={
-                "symbol": symbol.name,
+                "symbol": symbol_name,
                 "interval": self._INTERVAL_MAP[interval],
                 "limit": number,
                 "startTime": int(start_datetime.timestamp() * 1000) if start_datetime else None,
@@ -154,7 +154,7 @@ class Binance(ExchangeInterface):
 
     def _open_position(
         self,
-        symbol: Symbol,
+        symbol_name: str,
         size: Decimal,
         /,
         *,
@@ -162,12 +162,12 @@ class Binance(ExchangeInterface):
         take_profit: Optional[Decimal] = None,
         stop_loss: Optional[Decimal] = None,
     ) -> Position:
-        self._set_margin_type(symbol, "CROSSED")
-        self._set_leverage(symbol, leverage)
+        self._set_margin_type(symbol_name, "CROSSED")
+        self._set_leverage(symbol_name, leverage)
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api
         open_side, close_side = ("BUY", "SELL") if size > 0 else ("SELL", "BUY")
         base_order = {
-            "symbol": symbol.name,
+            "symbol": symbol_name,
             "positionSide": "BOTH",
             "newOrderRespType": "RESULT",
             "recvWindow": 1000,
@@ -219,7 +219,7 @@ class Binance(ExchangeInterface):
                 ),
             )
         return Position(
-            symbol_name=symbol.name,
+            symbol_name=symbol_name,
             size=size,
             leverage=leverage,
             pnl=Decimal(0),
@@ -255,7 +255,7 @@ class Binance(ExchangeInterface):
 
     def _set_margin_type(
         self,
-        symbol: Symbol,
+        symbol_name: str,
         margin_type: Literal["CROSSED", "ISOLATED"],
         /,
     ) -> None:
@@ -266,7 +266,7 @@ class Binance(ExchangeInterface):
                 "/v1/marginType",
                 payload=self._sign_request_data(
                     {
-                        "symbol": symbol.name,
+                        "symbol": symbol_name,
                         "marginType": margin_type,
                     },
                 ),
@@ -276,14 +276,14 @@ class Binance(ExchangeInterface):
             if exception.response_data.get("code", None) != -4046:
                 raise
 
-    def _set_leverage(self, symbol: Symbol, leverage: PositiveInt, /) -> None:
+    def _set_leverage(self, symbol_name: str, leverage: PositiveInt, /) -> None:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Change-Initial-Leverage
         self._dispatch_api_request(
             "POST",
             "/v1/leverage",
             payload=self._sign_request_data(
                 {
-                    "symbol": symbol.name,
+                    "symbol": symbol_name,
                     "leverage": leverage,
                 },
             ),
