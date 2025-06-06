@@ -1,6 +1,6 @@
 """A single interface for various exchanges."""
 
-from .datatypes import Balance, Candlestick, Position, Rules, Symbol
+from .datatypes import Balance, Candlestick, Position, Rules, Stats, Symbol
 from .exceptions import ExchangeException
 from .exchanges import Binance
 from .interface import ExchangeInterface
@@ -11,6 +11,7 @@ __all__ = (
     "Candlestick",
     "Position",
     "Rules",
+    "Stats",
     "Symbol",
     "ExchangeException",
     "Binance",

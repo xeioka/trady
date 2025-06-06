@@ -8,7 +8,7 @@ from typing import Iterator, Literal, Optional
 from pydantic import PositiveInt
 from requests import Session, status_codes
 
-from .datatypes import Balance, Candlestick, Position, Rules, Symbol
+from .datatypes import Balance, Candlestick, Position, Rules, Stats, Symbol
 from .exceptions import ExchangeException
 from .settings import ExchangeSettings
 
@@ -120,8 +120,17 @@ class ExchangeInterface:
             start_datetime = candlesticks[-1].close_datetime
             time.sleep(self._settings.candlesticks_iterator_throttle)
 
+    def get_stats_24h(self) -> dict[str, Stats]:
+        """Retrieve market stats (24h).
+
+        Returns
+        -------
+        A mapping between symbol names and stats.
+        """
+        return self._get_stats_24h()
+
     def get_rules(self) -> dict[str, Rules]:
-        """Retrieve trading rules.
+        """Retrieve market rules.
 
         Returns
         -------
@@ -250,6 +259,10 @@ class ExchangeInterface:
         end_datetime: Optional[datetime] = None,
     ) -> list[Candlestick]:
         """Override this to implement `get_candlesticks()` and `get_candlesticks_iterator()`."""
+        raise NotImplementedError
+
+    def _get_stats_24h(self) -> dict[str, Stats]:
+        """Override this to implement `get_stats_24h()`."""
         raise NotImplementedError
 
     def _get_rules(self) -> dict[str, Rules]:

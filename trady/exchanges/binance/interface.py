@@ -14,7 +14,7 @@ from urllib.parse import urlencode
 
 from pydantic import PositiveInt
 
-from trady.datatypes import Balance, Candlestick, Position, Rules, Symbol
+from trady.datatypes import Balance, Candlestick, Position, Rules, Stats, Symbol
 from trady.exceptions import ExchangeException
 from trady.interface import ExchangeInterface
 
@@ -98,6 +98,11 @@ class Binance(ExchangeInterface):
             },
         )
         return [self._parse_candlestick(candlestick_data) for candlestick_data in candlesticks_data]
+
+    def _get_stats_24h(self) -> dict[str, Stats]:
+        # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/24hr-Ticker-Price-Change-Statistics
+        response_data = self._dispatch_api_request("GET", "/v1/ticker/24hr")
+        return {stats_data["symbol"]: self._parse_stats(stats_data) for stats_data in response_data}
 
     def _get_rules(self) -> dict[str, Rules]:
         # A mapping between symbol names and rules data.
@@ -311,6 +316,10 @@ class Binance(ExchangeInterface):
             buy_volume=buy_volume,
             sell_volume=sell_volume,
         )
+
+    def _parse_stats(self, stats_data: dict, /) -> Stats:
+        # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/24hr-Ticker-Price-Change-Statistics#response-example
+        return Stats(volume=stats_data["quoteVolume"])
 
     def _parse_rules(self, rules_data: dict, /) -> Rules:
         rules_kwargs = {}
