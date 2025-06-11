@@ -14,7 +14,17 @@ from urllib.parse import urlencode
 
 from pydantic import PositiveInt
 
-from trady.datatypes import Balance, Candlestick, Position, Rules, Stats, Symbol
+from trady.datatypes import (
+    AccountPositions,
+    Balance,
+    Candlestick,
+    MarketRules,
+    MarketStats,
+    Position,
+    Symbol,
+    SymbolRules,
+    SymbolStats,
+)
 from trady.exceptions import ExchangeException
 from trady.interface import ExchangeInterface
 
@@ -22,7 +32,7 @@ from .settings import BinanceSettings
 
 
 class Binance(ExchangeInterface):
-    # A mapping between intervals (in seconds) and the corresponding API values.
+    # Maps intervals to the corresponding API values.
     _INTERVAL_MAP: dict[int, str] = {
         60: "1m",
         60 * 3: "3m",
@@ -60,7 +70,7 @@ class Binance(ExchangeInterface):
     def _get_datetime(self) -> datetime:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Check-Server-Time
         response_data = self._dispatch_api_request("GET", "/v1/time")
-        timestamp = response_data["serverTime"] / 1000  # type: ignore[call-overload]
+        timestamp = int(response_data["serverTime"]) / 1000  # type: ignore[call-overload]
         return datetime.fromtimestamp(timestamp)
 
     def _get_symbols(self) -> list[Symbol]:
@@ -86,7 +96,7 @@ class Binance(ExchangeInterface):
         if interval not in self._INTERVAL_MAP:
             raise ValueError(f"unknown interval {interval}")
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Kline-Candlestick-Data
-        candlesticks_data = self._dispatch_api_request(
+        response_data = self._dispatch_api_request(
             "GET",
             "/v1/klines",
             query_dict={
@@ -97,63 +107,62 @@ class Binance(ExchangeInterface):
                 "endTime": int(end_datetime.timestamp() * 1000) if end_datetime else None,
             },
         )
-        return [self._parse_candlestick(candlestick_data) for candlestick_data in candlesticks_data]
+        return [self._parse_candlestick(candlestick_data) for candlestick_data in response_data]
 
-    def _get_stats_24h(self) -> dict[str, Stats]:
+    def _get_market_stats_24h(self) -> MarketStats:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/24hr-Ticker-Price-Change-Statistics
         response_data = self._dispatch_api_request("GET", "/v1/ticker/24hr")
-        return {stats_data["symbol"]: self._parse_stats(stats_data) for stats_data in response_data}
+        return {stats_data["symbol"]: self._parse_symbol_stats(stats_data) for stats_data in response_data}
 
-    def _get_rules(self) -> dict[str, Rules]:
-        # A mapping between symbol names and rules data.
-        rules_data_map: dict[str, dict] = {}
+    def _get_market_rules(self) -> MarketRules:
+        # Maps symbol names to rules data.
+        market_rules_data: dict[str, dict] = {}
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Exchange-Information
         response_data = self._dispatch_api_request("GET", "/v1/exchangeInfo")
         symbols_data = response_data["symbols"]  # type: ignore[call-overload]
         for symbol_data in symbols_data:
             symbol_name = symbol_data["symbol"]
-            rules_data_map[symbol_name] = {"filters": symbol_data["filters"]}
+            market_rules_data[symbol_name] = {"filters": symbol_data["filters"]}
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Notional-and-Leverage-Brackets
-        symbols_data = self._dispatch_api_request(
+        response_data = self._dispatch_api_request(
             "GET",
             "/v1/leverageBracket",
             query_dict=self._sign_request_data({}),
         )
-        for symbol_data in symbols_data:
+        for symbol_data in response_data:
             symbol_name = symbol_data["symbol"]
-            if symbol_name not in rules_data_map:
+            if symbol_name not in market_rules_data:
                 continue
             for bracket_data in symbol_data["brackets"]:
                 if int(bracket_data["bracket"]) == 1 or Decimal(bracket_data["notionalFloor"]) == 0:
-                    rules_data_map[symbol_name]["bracket"] = bracket_data
+                    market_rules_data[symbol_name]["bracket"] = bracket_data
                     break
         return {
-            symbol_name: self._parse_rules(rules_data)
-            for symbol_name, rules_data in rules_data_map.items()
+            symbol_name: self._parse_symbol_rules(rules_data) for symbol_name, rules_data in market_rules_data.items()
         }
 
     def _get_balance(self, asset: str, /) -> Balance:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Futures-Account-Balance-V3
-        balances_data = self._dispatch_api_request(
+        response_data = self._dispatch_api_request(
             "GET",
             "/v3/balance",
             query_dict=self._sign_request_data({}),
         )
-        for balance_data in balances_data:
+        for balance_data in response_data:
             if balance_data["asset"] == asset:
                 return self._parse_balance(balance_data)
         raise ValueError(f"unknown asset {asset}")
 
-    def _get_positions(self) -> dict[str, Position]:
+    def _get_account_positions(self) -> AccountPositions:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Position-Information-V2
-        positions_data = self._dispatch_api_request(
+        response_data = self._dispatch_api_request(
             "GET",
             "/v2/positionRisk",
             query_dict=self._sign_request_data({}),
         )
         return {
             position_data["symbol"]: self._parse_position(position_data)
-            for position_data in positions_data
+            for position_data in response_data
             if Decimal(position_data["positionAmt"]) != 0
         }
 
@@ -254,8 +263,8 @@ class Binance(ExchangeInterface):
             self._close_position(position)
 
     def _close_all_positions(self) -> None:
-        positions_map = self.get_positions()
-        positions = list(positions_map.values())
+        account_positions = self.get_account_positions()
+        positions = list(account_positions.values())
         self._close_positions(positions)
 
     def _set_margin_type(
@@ -303,12 +312,14 @@ class Binance(ExchangeInterface):
 
     def _parse_candlestick(self, candlestick_data: list, /) -> Candlestick:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Kline-Candlestick-Data#response-example
+        open_timestamp = int(candlestick_data[0]) / 1000
+        close_timestamp = int(candlestick_data[6]) / 1000
         volume = Decimal(candlestick_data[7])
         buy_volume = Decimal(candlestick_data[10])
         sell_volume = volume - buy_volume
         return Candlestick(
-            open_datetime=datetime.fromtimestamp(candlestick_data[0] / 1000),
-            close_datetime=datetime.fromtimestamp(candlestick_data[6] / 1000),
+            open_datetime=datetime.fromtimestamp(open_timestamp),
+            close_datetime=datetime.fromtimestamp(close_timestamp),
             open=candlestick_data[1],
             high=candlestick_data[2],
             low=candlestick_data[3],
@@ -317,11 +328,11 @@ class Binance(ExchangeInterface):
             sell_volume=sell_volume,
         )
 
-    def _parse_stats(self, stats_data: dict, /) -> Stats:
+    def _parse_symbol_stats(self, stats_data: dict, /) -> SymbolStats:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/24hr-Ticker-Price-Change-Statistics#response-example
-        return Stats(volume=stats_data["quoteVolume"])
+        return SymbolStats(volume=stats_data["quoteVolume"])
 
-    def _parse_rules(self, rules_data: dict, /) -> Rules:
+    def _parse_symbol_rules(self, rules_data: dict, /) -> SymbolRules:
         rules_kwargs = {}
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Exchange-Information#response-example
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/common-definition#symbol-filters
@@ -340,7 +351,7 @@ class Binance(ExchangeInterface):
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Notional-and-Leverage-Brackets#response-example
         rules_kwargs["notional_max_value"] = rules_data["bracket"]["notionalCap"]
         rules_kwargs["leverage_max_value"] = rules_data["bracket"]["initialLeverage"]
-        return Rules(**rules_kwargs)
+        return SymbolRules(**rules_kwargs)
 
     def _parse_balance(self, balance_data: dict, /) -> Balance:
         # https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Futures-Account-Balance-V3#response-example

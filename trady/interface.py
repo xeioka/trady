@@ -7,8 +7,17 @@ from typing import Iterator, Literal, Optional
 
 from pydantic import PositiveInt
 from requests import Session, status_codes
+from requests.exceptions import JSONDecodeError
 
-from .datatypes import Balance, Candlestick, Position, Rules, Stats, Symbol
+from .datatypes import (
+    AccountPositions,
+    Balance,
+    Candlestick,
+    MarketRules,
+    MarketStats,
+    Position,
+    Symbol,
+)
 from .exceptions import ExchangeException
 from .settings import ExchangeSettings
 
@@ -60,7 +69,7 @@ class ExchangeInterface:
         symbol_name
             Candlesticks symbol.
         interval
-            Candlesticks interval (in seconds).
+            Candlesticks interval.
         number
             Required number of candlesticks. The default and the maximum value is `_settings.candlesticks_max_number`.
         start_datetime
@@ -97,7 +106,7 @@ class ExchangeInterface:
         symbol_name
             Candlesticks symbol.
         interval
-            Candlesticks interval (in seconds).
+            Candlesticks interval.
         start_datetime
             A datetime to start with.
         end_datetime
@@ -120,23 +129,13 @@ class ExchangeInterface:
             start_datetime = candlesticks[-1].close_datetime
             time.sleep(self._settings.candlesticks_iterator_throttle)
 
-    def get_stats_24h(self) -> dict[str, Stats]:
-        """Retrieve market stats (24h).
+    def get_market_stats_24h(self) -> MarketStats:
+        """Retrieve market stats (24h)."""
+        return self._get_market_stats_24h()
 
-        Returns
-        -------
-        A mapping between symbol names and stats.
-        """
-        return self._get_stats_24h()
-
-    def get_rules(self) -> dict[str, Rules]:
-        """Retrieve market rules.
-
-        Returns
-        -------
-        A mapping between symbol names and rules.
-        """
-        return self._get_rules()
+    def get_market_rules(self) -> MarketRules:
+        """Retrieve market rules."""
+        return self._get_market_rules()
 
     def get_balance(self, asset: str, /) -> Balance:
         """Retrieve asset balance.
@@ -148,14 +147,9 @@ class ExchangeInterface:
         """
         return self._get_balance(asset)
 
-    def get_positions(self) -> dict[str, Position]:
-        """Retrieve open positions.
-
-        Returns
-        -------
-        A mapping between symbol names and positions.
-        """
-        return self._get_positions()
+    def get_account_positions(self) -> AccountPositions:
+        """Retrieve account positions."""
+        return self._get_account_positions()
 
     def open_position(
         self,
@@ -226,26 +220,28 @@ class ExchangeInterface:
     ) -> dict | list:
         url = str(self._settings.api_url) + path
         if query_str:
-            url = url + "?" + query_str.lstrip("?")
+            url += "?" + query_str.lstrip("?")
         match method:
             case "GET":
                 response = self._session.get(url, params=query_dict)
             case "POST":
                 response = self._session.post(url, params=query_dict, data=payload)
         if response.status_code != status_codes.codes.OK:
+            try:
+                response_data = response.json()
+            except JSONDecodeError:
+                response_data = None
             raise ExchangeException(
                 f"API request returned {response.status_code}",
                 status_code=response.status_code,
-                response_data=response.json(),
+                response_data=response_data,
             )
         return response.json()  # type: ignore[no-any-return]
 
     def _get_datetime(self) -> datetime:
-        """Override this to implement `get_datetime()`."""
         raise NotImplementedError
 
     def _get_symbols(self) -> list[Symbol]:
-        """Override this to implement `get_symbols()`."""
         raise NotImplementedError
 
     def _get_candlesticks(
@@ -258,23 +254,18 @@ class ExchangeInterface:
         start_datetime: Optional[datetime] = None,
         end_datetime: Optional[datetime] = None,
     ) -> list[Candlestick]:
-        """Override this to implement `get_candlesticks()` and `get_candlesticks_iterator()`."""
         raise NotImplementedError
 
-    def _get_stats_24h(self) -> dict[str, Stats]:
-        """Override this to implement `get_stats_24h()`."""
+    def _get_market_stats_24h(self) -> MarketStats:
         raise NotImplementedError
 
-    def _get_rules(self) -> dict[str, Rules]:
-        """Override this to implement `get_rules()`."""
+    def _get_market_rules(self) -> MarketRules:
         raise NotImplementedError
 
     def _get_balance(self, asset: str, /) -> Balance:
-        """Override this to implement `get_balance()`."""
         raise NotImplementedError
 
-    def _get_positions(self) -> dict[str, Position]:
-        """Override this to implement `get_positions()`."""
+    def _get_account_positions(self) -> AccountPositions:
         raise NotImplementedError
 
     def _open_position(
@@ -287,17 +278,13 @@ class ExchangeInterface:
         take_profit: Optional[Decimal] = None,
         stop_loss: Optional[Decimal] = None,
     ) -> Position:
-        """Override this to implement `open_position()`."""
         raise NotImplementedError
 
     def _close_position(self, position: Position, /) -> None:
-        """Override this to implement `close_position()`."""
         raise NotImplementedError
 
     def _close_positions(self, positions: list[Position], /) -> None:
-        """Override this to implement `close_positions()`."""
         raise NotImplementedError
 
     def _close_all_positions(self) -> None:
-        """Override this to implement `close_all_positions()`."""
         raise NotImplementedError

@@ -1,8 +1,17 @@
-"""Symbol position."""
+"""Account datatypes."""
 
 from decimal import Decimal
 
 from pydantic import BaseModel, PositiveInt
+
+
+class Balance(BaseModel):
+    realized: Decimal
+    unrealized: Decimal
+
+    @property
+    def total(self) -> Decimal:
+        return self.realized + self.unrealized
 
 
 class Position(BaseModel):
@@ -20,3 +29,7 @@ class Position(BaseModel):
     @property
     def is_short(self) -> bool:
         return self.size < 0
+
+
+# Maps symbol names to positions.
+AccountPositions = dict[str, Position]
