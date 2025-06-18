@@ -13,7 +13,7 @@
     cd trady
     ```
 
-2. Create a Python virtual environment and install the requirements:
+2. Create Python virtual environment and install the requirements:
 
     ```sh
     python3.12 -m venv .venv

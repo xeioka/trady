@@ -1,12 +1,36 @@
-"""Symbol rules."""
+"""Market datatypes."""
 
+from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel, PositiveInt
 
 
-class Rules(BaseModel):
+class Symbol(BaseModel):
+    base_asset: str
+    quote_asset: str
+
+    @property
+    def name(self) -> str:
+        return self.base_asset + self.quote_asset
+
+    def __eq__(self, other: object) -> bool:
+        match other:
+            case Symbol():
+                return self.name == other.name
+            case _:
+                return self.name == other
+
+    def __hash__(self) -> int:
+        return hash(self.name)
+
+
+class SymbolStats(BaseModel):
+    volume: Decimal
+
+
+class SymbolRules(BaseModel):
     # Position size (absolute value).
     size_min_value: Optional[Decimal] = None
     size_max_value: Optional[Decimal] = None
@@ -16,7 +40,7 @@ class Rules(BaseModel):
     notional_max_value: Optional[Decimal] = None
     # Position leverage.
     leverage_max_value: Optional[PositiveInt] = None
-    # TP/SL price.
+    # Position TP/SL price.
     price_min_value: Optional[Decimal] = None
     price_max_value: Optional[Decimal] = None
     price_step: Optional[Decimal] = None
@@ -52,3 +76,59 @@ class Rules(BaseModel):
         if self.price_step is not None:
             return (price // self.price_step) * self.price_step
         return price
+
+
+class Candlestick(BaseModel):
+    # Open/close datetime.
+    open_datetime: datetime
+    close_datetime: datetime
+    # Open/high/low/close price.
+    open: Decimal
+    high: Decimal
+    low: Decimal
+    close: Decimal
+    # Volume.
+    buy_volume: Decimal
+    sell_volume: Decimal
+
+    @property
+    def change(self) -> Decimal:
+        return self.close - self.open
+
+    @property
+    def change_percent(self) -> Decimal:
+        return self.change / self.open
+
+    @property
+    def range(self) -> Decimal:
+        return self.high - self.low
+
+    @property
+    def range_percent(self) -> Decimal:
+        return self.range / self.open
+
+    @property
+    def high_shadow(self) -> Decimal:
+        return self.high - max(self.open, self.close)
+
+    @property
+    def high_shadow_percent(self) -> Decimal:
+        return self.high_shadow / self.open
+
+    @property
+    def low_shadow(self) -> Decimal:
+        return min(self.open, self.close) - self.low
+
+    @property
+    def low_shadow_percent(self) -> Decimal:
+        return self.low_shadow / self.open
+
+    @property
+    def volume(self) -> Decimal:
+        return self.buy_volume + self.sell_volume
+
+
+# Maps symbol names to stats.
+MarketStats = dict[str, SymbolStats]
+# Maps symbol names to rules.
+MarketRules = dict[str, SymbolRules]
