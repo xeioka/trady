@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- [Python](https://www.python.org) >= 3.12;
+- [Python](https://www.python.org) >= 3.12
 
 ## Setup
 
@@ -30,8 +30,8 @@
 
 ## Exchange Implementation
 
-1. Create a dedicated package in [`trady.exchanges`](/trady/exchanges/);
-2. Implement settings by subclassing [`ExchangeSettings`](/trady/settings.py);
-3. Implement interface by subclassing [`ExchangeInterface`](/trady/interface.py);
+1. Create a dedicated package in [`trady.exchanges`](/trady/exchanges/).
+2. Implement settings by subclassing [`ExchangeSettings`](/trady/settings.py).
+3. Implement interface by subclassing [`ExchangeInterface`](/trady/interface.py).
 
 For example reference, see [Binance implementation](/trady/exchanges/binance/).

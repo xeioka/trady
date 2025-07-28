@@ -18,7 +18,7 @@ class ExchangeSettings(BaseSettings, env_file=".env", env_prefix="trady__", extr
     candlesticks_max_number
         Maximum number of candlesticks that can be retrieved in a single API request.
     candlesticks_iterator_throttle
-        A delay between the API requests (in seconds) when retrieving more candlesticks
+        A delay between the API requests when retrieving more candlesticks
         than `candlesticks_max_number`. It helps to prevent violating rate limits.
 
     Examples

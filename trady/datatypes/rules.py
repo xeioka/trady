@@ -1,5 +1,3 @@
-"""Symbol rules."""
-
 from decimal import Decimal
 from typing import Optional
 
@@ -16,7 +14,7 @@ class Rules(BaseModel):
     notional_max_value: Optional[Decimal] = None
     # Position leverage.
     leverage_max_value: Optional[PositiveInt] = None
-    # TP/SL price.
+    # Position TP/SL price.
     price_min_value: Optional[Decimal] = None
     price_max_value: Optional[Decimal] = None
     price_step: Optional[Decimal] = None

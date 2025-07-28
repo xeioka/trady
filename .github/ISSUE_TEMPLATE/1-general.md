@@ -1,6 +1,6 @@
 ---
 name: General
-about: Use general template.
+about: Use general template
 title: ''
 labels: ''
 assignees: ''
@@ -16,5 +16,5 @@ assignees: ''
 
 # Checklist
 
-- [ ] Update documentation;
-- [ ] Perform manual testing;
+- [ ] Update documentation.
+- [ ] Perform manual testing.

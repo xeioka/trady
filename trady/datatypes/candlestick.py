@@ -1,5 +1,3 @@
-"""Symbol candlestick."""
-
 from datetime import datetime
 from decimal import Decimal
 
@@ -15,7 +13,7 @@ class Candlestick(BaseModel):
     high: Decimal
     low: Decimal
     close: Decimal
-    # Volume (in quote asset).
+    # Volume.
     buy_volume: Decimal
     sell_volume: Decimal
 
@@ -25,7 +23,7 @@ class Candlestick(BaseModel):
 
     @property
     def change_percent(self) -> Decimal:
-        return (self.change / self.open) * 100
+        return self.change / self.open
 
     @property
     def range(self) -> Decimal:
@@ -33,7 +31,7 @@ class Candlestick(BaseModel):
 
     @property
     def range_percent(self) -> Decimal:
-        return (self.range / self.open) * 100
+        return self.range / self.open
 
     @property
     def high_shadow(self) -> Decimal:
@@ -41,7 +39,7 @@ class Candlestick(BaseModel):
 
     @property
     def high_shadow_percent(self) -> Decimal:
-        return (self.high_shadow / self.open) * 100
+        return self.high_shadow / self.open
 
     @property
     def low_shadow(self) -> Decimal:
@@ -49,7 +47,7 @@ class Candlestick(BaseModel):
 
     @property
     def low_shadow_percent(self) -> Decimal:
-        return (self.low_shadow / self.open) * 100
+        return self.low_shadow / self.open
 
     @property
     def volume(self) -> Decimal:

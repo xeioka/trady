@@ -1,5 +1,3 @@
-"""Trading symbol."""
-
 from pydantic import BaseModel
 
 

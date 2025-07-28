@@ -6,8 +6,6 @@
 /.venv
 /.vscode
 
-# Cache.
+# Misc.
 **/__pycache__
-
-# OS.
 **/.DS_Store

@@ -1,6 +1,6 @@
 """Exchange implementations."""
 
-from .binance import Binance
+from .binance.interface import Binance
 
 
 __all__ = ("Binance",)
